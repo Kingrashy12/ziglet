@@ -21,7 +21,7 @@ pub fn main() !void {
 
     const allocator = arena.allocator();
 
-    var commander = try cmd.init(allocator, "my-cli", "1.0.0", null);
+    var commander = try cmd.init(allocator, "my-cli", "0.1.0", null);
     defer commander.deinit();
 
     // Define a simple command
