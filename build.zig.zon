@@ -1,0 +1,19 @@
+.{
+    .name = .ziglet,
+
+    .version = "1.0.0",
+
+    .description = "Ziglet is a lightweight command-line interface (CLI) builder powered by Zig.",
+
+    .fingerprint = 0x27874d01f0e9219a,
+
+    .minimum_zig_version = "0.14.0",
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+        "README.md",
+    },
+}
