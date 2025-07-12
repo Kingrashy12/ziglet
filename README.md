@@ -9,12 +9,6 @@ Ziglet is a lightweight command-line interface (CLI) builder powered by Zig. It 
 - Minimal dependencies, maximum speed
 - Built in Zig for clarity, performance, and control
 
-## 📦 Installation
-
-git clone https://github.com/Kingrashy12/ziglet
-cd ziglet
-zig build run
-
 ## 📚 Example Usage
 
 ```zig
