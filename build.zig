@@ -5,14 +5,41 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib_mod = b.createModule(.{
+    // Create a module for the library
+    _ = b.addModule("ziglet", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    // Create a module for the library
-    const ziglet_lib = b.addLibrary(.{ .linkage = .static, .name = "ziglet", .root_module = lib_mod });
+    // Create a static library
+    const static_lib = b.addStaticLibrary(.{
+        .name = "ziglet",
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
 
-    b.installArtifact(ziglet_lib);
+    // Create a dynamic library
+    const dynamic_lib = b.addSharedLibrary(.{
+        .name = "ziglet",
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // Install the static and dynamic libraries
+    b.installArtifact(static_lib);
+    b.installArtifact(dynamic_lib);
+
+    // Add a test step
+    const tests = b.addTest(.{
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const run_tests = b.addRunArtifact(tests);
+    const test_step = b.step("test", "Run library tests");
+    test_step.dependOn(&run_tests.step);
 }
