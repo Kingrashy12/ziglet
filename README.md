@@ -54,7 +54,7 @@ pub fn main() !void {
 }
 
 // The function to execute
-fn greetFn(self: *ziglet.Commander) void {
+fn greetFn(self: *ziglet.Commander) !void {
     std.debug.print("Hello from {s}!\n", .{self.name});
 }
 ```
