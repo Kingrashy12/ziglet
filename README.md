@@ -19,7 +19,7 @@ zig fetch --save git+https://github.com/Kingrashy12/ziglet
 
 2. Add the module to your `build.zig`:
 
-```bash
+```zig
   // Add the ziglet dependency
   const ziglet_dep = b.dependency("ziglet", .{
      .target = target,
