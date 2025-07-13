@@ -5,31 +5,14 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const lib_mod = b.createModule(.{
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // Create a module for the library
-    const ziglet_module = b.addModule("ziglet", .{
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const ziglet_lib = b.addLibrary(.{ .linkage = .static, .name = "ziglet", .root_module = lib_mod });
 
-    // Create a static library
-    const static_lib = b.addStaticLibrary(.{
-        .name = "ziglet",
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    // Create a dynamic library
-    const dynamic_lib = b.addSharedLibrary(.{
-        .name = "ziglet",
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    // Install the static and dynamic libraries
-    b.installArtifact(static_lib);
-    b.installArtifact(dynamic_lib);
-    b.installArtifact(ziglet_module);
+    b.installArtifact(ziglet_lib);
 }
