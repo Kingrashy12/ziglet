@@ -1,6 +1,6 @@
 # 🐣 Ziglet – Your Minimalist CLI Builder in Zi
 
-Ziglet is a lightweight command-line interface (CLI) builder powered by Zig. It lets you effortlessly define custom commands and execute them using Ziglet's core `executeCommand` functionality—giving you a flexible and blazing-fast CLI tool tailored to your needs.
+Ziglet is a lightweight command-line interface (CLI) builder. It lets you effortlessly define custom commands and execute them using Ziglet's core `executeCommand` functionality—giving you a flexible and blazing-fast CLI tool tailored to your needs.
 
 ## ✨ Features
 

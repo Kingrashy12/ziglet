@@ -3,7 +3,7 @@
 
     .version = "0.1.0",
 
-    .description = "Ziglet is a lightweight command-line interface (CLI) builder powered by Zig.",
+    .description = "Ziglet is a lightweight command-line interface (CLI) builder.",
 
     .fingerprint = 0x27874d01f0e9219a,
 
