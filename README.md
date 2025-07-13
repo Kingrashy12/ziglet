@@ -9,11 +9,32 @@ Ziglet is a lightweight command-line interface (CLI) builder. It lets you effort
 - Minimal dependencies, maximum speed
 - Built in Zig for clarity, performance, and control
 
-## 📚 Example Usage
+## 📚 How to Use
+
+1. Fetch the package:
+
+```bash
+zig fetch --save git+https://github.com/Kingrashy12/ziglet
+```
+
+2. Add the module to your `build.zig`:
+
+```bash
+  // Add the ziglet dependency
+  const ziglet_dep = b.dependency("ziglet", .{
+     .target = target,
+     .optimize = optimize,
+   });
+
+   // Add the ziglet module to the executable
+   exe.root_module.addImport("ziglet", ziglet_dep.module("ziglet"));
+```
+
+3. Import and use in your code:
 
 ```zig
 const std = @import("std");
-const cmd = @import("ziglet").Commander;
+const ziglet = @import("ziglet");
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -21,7 +42,7 @@ pub fn main() !void {
 
     const allocator = arena.allocator();
 
-    var commander = try cmd.init(allocator, "my-cli", "0.1.0", null);
+    var commander = try ziglet.Commander.init(allocator, "my-cli", "0.1.0", null);
     defer commander.deinit();
 
     // Define a simple command
