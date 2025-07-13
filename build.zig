@@ -1,42 +1,35 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
+    // Define the target and optimization options
     const target = b.standardTargetOptions(.{});
-
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib_mod = b.createModule(.{
+    // Create a module for the library
+    const ziglet_module = b.addModule("ziglet", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    const lib = b.addLibrary(.{
-        .linkage = .static,
+    // Create a static library
+    const static_lib = b.addStaticLibrary(.{
         .name = "ziglet",
-        .root_module = lib_mod,
-    });
-
-    b.installArtifact(lib);
-
-    const cli_name = b.option([]const u8, "cli-name", "User-defined CLI tool name") orelse "ziglet-app";
-
-    const cli_exe = b.addExecutable(.{
-        .name = cli_name, // you could make this dynamic
-        .root_source_file = b.path("src/main.zig"), // or ziglet_cli_entry.zig
+        .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    cli_exe.root_module.addImport("ziglet", lib_mod); // link your library module
-    b.installArtifact(cli_exe); // install binary to zig-out/bin
-
-    const lib_unit_tests = b.addTest(.{
-        .root_module = lib_mod,
+    // Create a dynamic library
+    const dynamic_lib = b.addSharedLibrary(.{
+        .name = "ziglet",
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
     });
 
-    const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
-
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_lib_unit_tests.step);
+    // Install the static and dynamic libraries
+    b.installArtifact(static_lib);
+    b.installArtifact(dynamic_lib);
+    b.installArtifact(ziglet_module);
 }
