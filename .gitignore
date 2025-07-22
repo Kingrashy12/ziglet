@@ -1,3 +1,4 @@
 /zig-out
 /.zig-cache
-/example
+/src/example.zig
+src/main.zig

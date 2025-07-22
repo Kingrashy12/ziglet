@@ -4,12 +4,29 @@ const tmc = @import("../../utils/terminal.zig");
 const Color = tmc.Color;
 const writeColored = tmc.bufPrintC;
 
+pub const OptionType = enum {
+    bool,
+    string,
+    int,
+    float,
+};
+
 /// Represents a command-line option.
 ///
 /// - `flag`: The option flag (e.g., "--help").
 /// - `description`: A brief description of the option.
 /// - `required`: Indicates if the option is required (defaults to `false`).
-pub const Option = struct { flag: []const u8, description: []const u8, required: bool = false };
+/// - `is_bool`: Indicates if the option is a boolean (defaults to `false`).
+pub const Option = struct {
+    flag: []const u8,
+    description: []const u8,
+    required: bool = false,
+    option_type: OptionType = .string,
+
+    pub fn isBool(self: Option) bool {
+        return self.option_type == .bool;
+    }
+};
 
 /// Represents a command in the CLI application.
 ///
@@ -125,8 +142,19 @@ pub const Commander = struct {
             const callNext = try self.validateArg(command);
 
             if (callNext) {
+                var bool_option_indices = std.ArrayList(usize).init(self.allocator);
+                defer bool_option_indices.deinit();
+
+                if (command.options) |options| {
+                    for (options, 0..options.len) |option, i| {
+                        if (option.isBool()) {
+                            try bool_option_indices.append(i);
+                        }
+                    }
+                }
+
                 // Assign options to result from `parser.parse`
-                self.options = try self.parser.parse();
+                self.options = try self.parser.parse(bool_option_indices.items, command);
 
                 // Check if arg passed is valid
                 try command.execute(self);
@@ -146,9 +174,29 @@ pub const Commander = struct {
         if (has_options) {
             std.debug.print("Options:\n", .{});
             for (command.options.?) |option| {
-                std.debug.print("{s}   {s}\n", .{ option.flag, option.description });
+                std.debug.print("{s:<15}   {s}\n", .{ option.flag, option.description });
             }
         }
+    }
+
+    /// Prints the help information for the current command to the standard output.
+    /// This typically includes usage instructions and available options.
+    /// Returns an error if printing fails.
+    pub fn printHelpCommand(self: *Self) !void {
+        const name = self.rawArgs[1];
+        const command = self.commands.get(name) orelse {
+            var joined_buffer: [1024]u8 = undefined;
+            var result_buffer: [1024]u8 = undefined;
+
+            const result = try std.fmt.bufPrint(&joined_buffer, "{s} {s}", .{ "Unknown command:", name });
+
+            std.debug.print("{s}\n", .{try writeColored(result, &[_]Color{.red}, &result_buffer)});
+
+            std.debug.print("\nTo see a list of supported commands, run: \n {s} --help\n", .{self.name});
+            return;
+        };
+
+        return try self.generateHelp(command);
     }
 
     /// Validates the command-line arguments against the expected options for the command.

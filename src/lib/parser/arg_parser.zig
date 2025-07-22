@@ -47,20 +47,34 @@ pub fn ArgParser(comptime T: type) type {
         ///
         /// Errors:
         ///   This function may return an error if the arguments cannot be parsed successfully.
-        pub fn parse(self: *Self) !T {
+        pub fn parse(self: *Self, bool_option_indices: []const usize, command: anytype) !T {
             var result: T = T.init(self.allocator);
 
             var i: usize = 0;
             while (i < self.args.len) {
                 const arg = std.mem.sliceTo(self.args[i], 0);
                 if (std.mem.startsWith(u8, arg, "--")) {
-                    if (i + 1 >= self.args.len) {
-                        return ArgParserError.MissingValue;
-                    }
                     const key = arg[2..];
-                    const value = std.mem.sliceTo(self.args[i + 1], 0);
-                    try result.put(key, value);
-                    i += 2;
+
+                    // Check if this is a boolean option
+                    var is_bool: bool = false;
+                    for (bool_option_indices) |idx| {
+                        if (command.options != null and i == idx) {
+                            is_bool = true;
+                            break;
+                        }
+                    }
+
+                    if (is_bool) {
+                        try result.put(key, "true");
+                        i += 1;
+                    } else if (i + 1 >= self.args.len) {
+                        return ArgParserError.MissingValue;
+                    } else {
+                        const value = std.mem.sliceTo(self.args[i + 1], 0);
+                        try result.put(key, value);
+                        i += 2;
+                    }
                 } else {
                     i += 1;
                 }
