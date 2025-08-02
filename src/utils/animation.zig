@@ -1,7 +1,7 @@
 const std = @import("std");
 const terminal = @import("terminal.zig");
 const Color = terminal.Color;
-const bufPrintC = terminal.bufPrintC;
+const printColored = terminal.printColored;
 
 /// Represents an animation, encapsulating its properties and behavior.
 /// Use this struct to manage animation state and logic within your application.
@@ -47,15 +47,13 @@ pub const Animation = struct {
             }
         }
 
-        var cbuffer: [100]u8 = undefined;
-
         switch (self.status.load(.seq_cst)) {
             @intFromEnum(Status.success) => {
-                std.debug.print("\r{s} {s}\n", .{ success_icon, bufPrintC(self.status_buffer, &[_]Color{.green}, &cbuffer) catch unreachable });
+                printColored(.green, "\r{s} {s}\n", .{ success_icon, self.status_buffer });
                 return;
             },
             @intFromEnum(Status.failed) => {
-                std.debug.print("\r{s} {s}\n", .{ error_icon, bufPrintC(self.status_buffer, &[_]Color{.red}, &cbuffer) catch unreachable });
+                printColored(.green, "\r{s} {s}\n", .{ error_icon, self.status_buffer });
                 return;
             },
             else => unreachable,
@@ -72,3 +70,39 @@ pub const Animation = struct {
         self.status.store(@intFromEnum(status), .seq_cst);
     }
 };
+
+pub fn write(text: []const u8, delay: u64) void {
+    var i: usize = 0;
+
+    const stdout = std.io.getStdOut().writer();
+
+    while (i < text.len) {
+        _ = stdout.print("\r{s}", .{text[0 .. i + 1]}) catch {};
+
+        i += 1;
+
+        std.time.sleep(delay * std.time.ns_per_ms);
+    }
+    _ = stdout.print("\n", .{}) catch {};
+}
+
+pub fn progressBar(delay: u64, message: []const u8) void {
+    var i: u8 = 0;
+
+    const stdout = std.io.getStdOut().writer();
+
+    while (i < 101) {
+        var bar: [50]u8 = [_]u8{' '} ** 50;
+
+        for (0..@divTrunc(i, 2)) |j| {
+            bar[j] = '=';
+        }
+
+        _ = stdout.print("\r{s}: {d}% [{s}]", .{ message, i, bar }) catch {};
+
+        i += 1;
+
+        std.time.sleep(delay * std.time.ns_per_ms);
+    }
+    _ = stdout.print("\n", .{}) catch {};
+}

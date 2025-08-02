@@ -2,7 +2,8 @@ const std = @import("std");
 const ArgParser = @import("../parser/parser.zig").ArgParser();
 const tmc = @import("../../utils/terminal.zig");
 const Color = tmc.Color;
-const writeColored = tmc.bufPrintC;
+const printColored = tmc.printColored;
+const printError = tmc.printError;
 
 pub const OptionType = enum {
     bool,
@@ -11,12 +12,13 @@ pub const OptionType = enum {
     float,
 };
 
+// TODO: Add short and long flags support
+
 /// Represents a command-line option.
 ///
 /// - `flag`: The option flag (e.g., "--help").
 /// - `description`: A brief description of the option.
 /// - `required`: Indicates if the option is required (defaults to `false`).
-/// - `is_bool`: Indicates if the option is a boolean (defaults to `false`).
 pub const Option = struct {
     flag: []const u8,
     description: []const u8,
@@ -77,7 +79,17 @@ pub const Commander = struct {
     /// Initializes a new Commander instance.
     pub fn init(allocator: std.mem.Allocator, name: []const u8, version: []const u8, description: ?[]const u8) !Self {
         var args = try std.process.argsAlloc(allocator);
-        return Self{ .commands = std.StringHashMap(Command).init(allocator), .parser = try ArgParser.init(allocator, args[0..]), .rawArgs = args, .name = name, .version = version, .description = description, .options = std.StringHashMap([]const u8).init(allocator), .allocator = allocator };
+
+        return Self{
+            .commands = std.StringHashMap(Command).init(allocator),
+            .parser = try ArgParser.init(allocator, args[0..]),
+            .rawArgs = args,
+            .name = name,
+            .version = version,
+            .description = description,
+            .options = std.StringHashMap([]const u8).init(allocator),
+            .allocator = allocator,
+        };
     }
 
     pub fn deinit(self: *Self) void {
@@ -114,7 +126,7 @@ pub const Commander = struct {
         const name = self.rawArgs[1];
 
         if ((arg.len > 1 and std.mem.eql(u8, arg[1], "--version")) or (arg.len > 1 and std.mem.eql(u8, arg[1], "-v"))) {
-            std.debug.print("v{s}", .{self.version});
+            print("v{s}", .{self.version});
             return;
         }
 
@@ -124,14 +136,9 @@ pub const Commander = struct {
         }
 
         const command = self.commands.get(name) orelse {
-            var joined_buffer: [1024]u8 = undefined;
-            var result_buffer: [1024]u8 = undefined;
+            printError("Unknown command: {s}", .{name});
 
-            const result = try std.fmt.bufPrint(&joined_buffer, "{s} {s}", .{ "Unknown command:", name });
-
-            std.debug.print("{s}\n", .{try writeColored(result, &[_]Color{.red}, &result_buffer)});
-
-            std.debug.print("\nTo see a list of supported commands, run: \n {s} --help\n", .{self.name});
+            print("\nTo see a list of supported commands, run: \n {s} --help\n", .{self.name});
             return;
         };
 
@@ -153,6 +160,11 @@ pub const Commander = struct {
                     }
                 }
 
+                // Ensure only a single bool option is available
+                if (bool_option_indices.items.len > 1) {
+                    return printError("Command currently supports only one option with option_type bool.", .{});
+                }
+
                 // Assign options to result from `parser.parse`
                 self.options = try self.parser.parse(bool_option_indices.items, command);
 
@@ -166,15 +178,15 @@ pub const Commander = struct {
         const has_options = command.options != null and command.options.?.len >= 1;
 
         if (has_options) {
-            std.debug.print("Usage: {s} {s} [options]\n\n", .{ self.name, command.name });
-        } else std.debug.print("Usage: {s} {s}\n\n", .{ self.name, command.name });
+            print("Usage: {s} {s} [options]\n\n", .{ self.name, command.name });
+        } else print("Usage: {s} {s}\n\n", .{ self.name, command.name });
 
-        std.debug.print("Description: {s}\n\n", .{command.description});
+        print("Description: {s}\n\n", .{command.description});
 
         if (has_options) {
-            std.debug.print("Options:\n", .{});
+            print("Options:\n", .{});
             for (command.options.?) |option| {
-                std.debug.print("{s:<15}   {s}\n", .{ option.flag, option.description });
+                print("{s:<15}   {s}\n", .{ option.flag, option.description });
             }
         }
     }
@@ -185,14 +197,9 @@ pub const Commander = struct {
     pub fn printHelpCommand(self: *Self) !void {
         const name = self.rawArgs[1];
         const command = self.commands.get(name) orelse {
-            var joined_buffer: [1024]u8 = undefined;
-            var result_buffer: [1024]u8 = undefined;
+            printError("Unknown command: {s}", .{name});
 
-            const result = try std.fmt.bufPrint(&joined_buffer, "{s} {s}", .{ "Unknown command:", name });
-
-            std.debug.print("{s}\n", .{try writeColored(result, &[_]Color{.red}, &result_buffer)});
-
-            std.debug.print("\nTo see a list of supported commands, run: \n {s} --help\n", .{self.name});
+            print("\nTo see a list of supported commands, run: \n {s} --help\n", .{self.name});
             return;
         };
 
@@ -224,13 +231,12 @@ pub const Commander = struct {
                     }
                 }
                 if (!found) {
-                    var buffer: [1024]u8 = undefined;
-                    var result_buffer: [1024]u8 = undefined;
-                    const result = try std.fmt.bufPrint(&buffer, "{s} {s}", .{ "Unknown flag:", flag });
-                    std.debug.print("{s}\n", .{try writeColored(result, &[_]Color{.red}, &result_buffer)});
-                    std.debug.print(" Did you mean to use one of:\n", .{});
+                    printError("Unknown flag '{s}'\n", .{flag});
+
+                    print("Did you mean to use one of:\n", .{});
+
                     for (command.options.?) |option| {
-                        std.debug.print("  {s}\n", .{option.flag});
+                        print("  {s}\n", .{option.flag});
                     }
                     return false;
                 }
@@ -247,10 +253,7 @@ pub const Commander = struct {
                         }
                     }
                     if (!present) {
-                        var buffer: [1024]u8 = undefined;
-                        var result_buffer: [1024]u8 = undefined;
-                        const result = try std.fmt.bufPrint(&buffer, "{s} {s}", .{ "Missing required option:", option.flag });
-                        std.debug.print("{s}\n", .{try writeColored(result, &[_]Color{.red}, &result_buffer)});
+                        printError("Missing required option: {s}", .{option.flag});
                         return false;
                     }
                 }
@@ -261,21 +264,17 @@ pub const Commander = struct {
     }
 
     fn printHelp(self: *Self) !void {
-        var buffer: [1024]u8 = undefined;
+        print("Usage: {s} <command> [option]\n\n", .{self.name});
 
-        std.debug.print("Usage: {s} <command>\n\n", .{self.name});
-        std.debug.print("{s}\n", .{try writeColored("Commands:\n", &[_]Color{.white}, &buffer)});
+        printColored(.white, "Commands:\n\n", .{});
 
         var it = self.commands.iterator();
 
         while (it.next()) |entry| {
-            var name_buffer: [1024]u8 = undefined;
-            const display_name = try writeColored(entry.key_ptr.*, &[_]Color{.white}, &name_buffer);
-            std.debug.print(" {s:<25} {s}\n", .{ display_name, entry.value_ptr.description });
+            printColored(.white, "{s:<16} {s}\n", .{ entry.key_ptr.*, entry.value_ptr.description });
         }
-        var name_buffer: [1024]u8 = undefined;
-        const display_name = try writeColored("<command> -h", &[_]Color{.white}, &name_buffer);
-        std.debug.print("{s:<26} {s}\n", .{ display_name, "quick help on <command>" });
+
+        printColored(.white, "{s:<16} {s}\n", .{ "<command> -h", "quick help on <command>" });
     }
 
     /// Checks the validity of the arguments provided to the command.
@@ -284,5 +283,10 @@ pub const Commander = struct {
             try self.printHelp();
             return;
         }
+    }
+
+    fn print(comptime format: []const u8, args: anytype) void {
+        var stdout = std.io.getStdOut().writer();
+        _ = stdout.print(format, args) catch {};
     }
 };

@@ -24,6 +24,20 @@ pub fn formatBytes(bytes: u64) ![]const u8 {
     }
 }
 
+pub fn convertNanosecondsToTime(nanoseconds: u64) struct { milliseconds: f64, seconds: f64, minutes: f64, hours: f64 } {
+    const milliseconds_in_nanoseconds: u64 = 1_000_000;
+    const seconds_in_nanoseconds: u64 = 1_000_000_000;
+    const minutes_in_nanoseconds: u64 = 60 * seconds_in_nanoseconds;
+    const hours_in_nanoseconds: u64 = 60 * minutes_in_nanoseconds;
+
+    const milliseconds: f64 = @as(f64, @floatFromInt(nanoseconds)) / @as(f64, @floatFromInt(milliseconds_in_nanoseconds));
+    const seconds: f64 = @as(f64, @floatFromInt(nanoseconds)) / @as(f64, @floatFromInt(seconds_in_nanoseconds));
+    const minutes: f64 = @as(f64, @floatFromInt(nanoseconds)) / @as(f64, @floatFromInt(minutes_in_nanoseconds));
+    const hours: f64 = @as(f64, @floatFromInt(nanoseconds)) / @as(f64, @floatFromInt(hours_in_nanoseconds));
+
+    return .{ .milliseconds = milliseconds, .seconds = seconds, .minutes = minutes, .hours = hours };
+}
+
 test "format bytes" {
     try std.testing.expectEqualStrings("188 B", try formatBytes(188));
     try std.testing.expectEqualStrings("1.84 KB", try formatBytes(1887));

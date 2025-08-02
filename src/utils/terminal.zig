@@ -10,6 +10,23 @@ pub const Color = enum {
     white,
     blue,
     bold,
+    magenta,
+    black,
+
+    pub fn ansiCode(self: Color) []const u8 {
+        return switch (self) {
+            .reset => "\x1b[0m",
+            .black => "\x1b[30m",
+            .red => "\x1b[31m",
+            .green => "\x1b[32m",
+            .yellow => "\x1b[33m",
+            .blue => "\x1b[34m",
+            .magenta => "\x1b[35m",
+            .cyan => "\x1b[36m",
+            .white => "\x1b[37m",
+            .bold => "\x1b[1m",
+        };
+    }
 };
 
 const colors = std.enums.EnumMap(Color, []const u8).init(.{
@@ -21,6 +38,8 @@ const colors = std.enums.EnumMap(Color, []const u8).init(.{
     .cyan = "\x1b[36m",
     .white = "\x1b[37m",
     .bold = "\x1b[1m",
+    .magenta = "\x1b[35m",
+    .black = "\x1b[30m",
 });
 
 /// Prints formatted text with ANSI color codes to a buffer.
@@ -51,6 +70,19 @@ pub fn bufPrintC(
     return writer.getWritten();
 }
 
+pub fn printColored(color: Color, comptime fmt: []const u8, args: anytype) void {
+    var stdout = std.io.getStdOut().writer();
+    _ = stdout.print("{s}" ++ fmt ++ "{s}", .{color.ansiCode()} ++ args ++ .{Color.reset.ansiCode()}) catch {};
+}
+
+pub fn printColoredInfo(color: Color, comptime fmt: []const u8, args: anytype) void {
+    std.log.info("{s}" ++ fmt ++ "{s}", .{color.ansiCode()} ++ args ++ .{Color.reset.ansiCode()});
+}
+
+pub fn printError(comptime fmt: []const u8, args: anytype) void {
+    std.log.err("{s}" ++ fmt ++ "{s}", .{Color.red.ansiCode()} ++ args ++ .{Color.reset.ansiCode()});
+}
+
 /// Set console to UTF-8 on Windows
 pub fn setWinConsole() void {
     // Define CP_UTF8 constant for Windows
@@ -71,8 +103,10 @@ pub fn setWinConsole() void {
 ///
 /// Returns the input as a slice of constant bytes, or an error if reading fails.
 pub fn readInput(allocator: std.mem.Allocator, promt: ?[]const u8) ![]const u8 {
+    var stdout = std.io.getStdOut().writer();
+
     if (promt) |p| {
-        std.debug.print("{s}: ", .{p});
+        stdout.print("{s}: ", .{p}) catch {};
     }
 
     var stdin = std.io.getStdIn().reader();
@@ -100,8 +134,10 @@ pub fn readInput(allocator: std.mem.Allocator, promt: ?[]const u8) ![]const u8 {
 ///
 /// Returns the input as an unsigned 8-bit integer (`u8`), or an error if the input is invalid.
 pub fn readInputNum(promt: ?[]const u8) !u8 {
+    var stdout = std.io.getStdOut().writer();
+
     if (promt) |p| {
-        std.debug.print("{s}: ", .{p});
+        stdout.print("{s}: ", .{p}) catch {};
     }
 
     var stdin = std.io.getStdIn().reader();
@@ -131,28 +167,30 @@ pub fn readInputNum(promt: ?[]const u8) !u8 {
 /// Returns the index of the selected option on success.
 /// Returns an error if the selection process fails.
 pub fn select(options: []const []const u8, message: []const u8) !usize {
-    std.debug.print("{s}\n", .{message});
+    var stdout = std.io.getStdOut().writer();
+
+    stdout.print("{s}\n", .{message}) catch {};
 
     for (options, 0..) |option, i| {
-        std.debug.print("{d}. {s}\n", .{ i + 1, option });
+        stdout.print("{d}. {s}\n", .{ i + 1, option });
     }
 
     while (true) {
-        std.debug.print("> ", .{});
+        stdout.print("> ", .{}) catch {};
         var buffer: [100]u8 = undefined;
 
         const input = try std.io.getStdIn().reader().readUntilDelimiterOrEof(buffer[0..], '\n');
 
         if (input) |line| {
             const index = std.fmt.parseInt(usize, std.mem.trim(u8, line, "\r\n"), 10) catch {
-                std.debug.print("Invalid index. Please enter a number.\n", .{});
+                stdout.print("Invalid index. Please enter a number.\n", .{}) catch {};
                 continue;
             };
 
             if (index > 0 and index <= options.len) {
                 return index - 1;
             } else {
-                std.debug.print("Invalid option. Please try again.\n", .{});
+                stdout.print("Invalid option. Please try again.\n", .{}) catch {};
             }
         } else {
             return error.EndOfFile;
@@ -164,7 +202,9 @@ pub fn select(options: []const []const u8, message: []const u8) !usize {
 /// Returns `true` if the user confirms, `false` otherwise.
 /// May return an error if input/output operations fail.
 pub fn confirm(message: []const u8) !bool {
-    std.debug.print("{s} (y/n): ", .{message});
+    var stdout = std.io.getStdOut().writer();
+
+    stdout.print("{s} (y/n): ", .{message}) catch {};
     var buffer: [10]u8 = undefined;
 
     const input = try std.io.getStdIn().reader().readUntilDelimiterOrEof(buffer[0..], '\n');
