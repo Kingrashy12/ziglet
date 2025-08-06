@@ -53,21 +53,17 @@ const colors = std.enums.EnumMap(Color, []const u8).init(.{
 /// - `args`: Arguments for the format string.
 ///
 /// Returns the number of bytes written to the buffer or an error if formatting fails.
+///
+/// *@deprecated* - Use `printColored` instead
 pub fn bufPrintC(
     text: []const u8,
     colorKeys: []const Color,
     buffer: []u8,
-) ![]u8 {
-    var writer = std.io.fixedBufferStream(buffer);
-    const stream = writer.writer();
-
-    for (colorKeys) |key| {
-        try stream.writeAll(colors.get(key).?);
-    }
-    try stream.writeAll(text);
-    try stream.writeAll(colors.get(.reset).?);
-
-    return writer.getWritten();
+) !void {
+    _ = text;
+    _ = colorKeys;
+    _ = buffer;
+    @compileError("Use `printColored` instead");
 }
 
 pub fn printColored(color: Color, comptime fmt: []const u8, args: anytype) void {
@@ -81,6 +77,11 @@ pub fn printColoredInfo(color: Color, comptime fmt: []const u8, args: anytype) v
 
 pub fn printError(comptime fmt: []const u8, args: anytype) void {
     std.log.err("{s}" ++ fmt ++ "{s}", .{Color.red.ansiCode()} ++ args ++ .{Color.reset.ansiCode()});
+}
+
+pub fn clearConsole() void {
+    var stdout = std.io.getStdOut();
+    _ = stdout.write("\x1B[2J\x1B[3J\x1B[H") catch unreachable;
 }
 
 /// Set console to UTF-8 on Windows
@@ -111,8 +112,6 @@ pub fn readInput(allocator: std.mem.Allocator, promt: ?[]const u8) ![]const u8 {
 
     var stdin = std.io.getStdIn().reader();
 
-    var writer = std.io.getStdOut().writer();
-
     const input = stdin.readUntilDelimiterOrEofAlloc(allocator, '\n', 500) catch |err| {
         return @errorName(err);
     };
@@ -121,9 +120,7 @@ pub fn readInput(allocator: std.mem.Allocator, promt: ?[]const u8) ![]const u8 {
     if (input) |line| {
         return allocator.dupe(u8, std.mem.trim(u8, line, "\n\r"));
     } else {
-        var wbuffer: [100]u8 = undefined;
-
-        try writer.print("{s} \n", .{try bufPrintC("Input error. Try again.", &[_]Color{.red}, &wbuffer)});
+        printColored(.red, "Input error. Try again.", .{});
         return "Cancelled";
     }
 }
@@ -142,8 +139,6 @@ pub fn readInputNum(promt: ?[]const u8) !u8 {
 
     var stdin = std.io.getStdIn().reader();
 
-    var writer = std.io.getStdOut().writer();
-
     var buffer: [500]u8 = undefined;
 
     const input = try stdin.readUntilDelimiterOrEof(buffer[0..], '\n');
@@ -153,8 +148,7 @@ pub fn readInputNum(promt: ?[]const u8) !u8 {
 
         return try std.fmt.parseInt(u8, trimmed, 10);
     } else {
-        var wbuffer: [100]u8 = undefined;
-        try writer.print("{s} \n", .{try bufPrintC("Input error. Try again.", &[_]Color{.red}, &wbuffer)});
+        printColored(.red, "Input error. Try again.", .{});
         return 0;
     }
 }
