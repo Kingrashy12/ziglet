@@ -12,21 +12,41 @@ pub const OptionType = enum {
     float,
 };
 
-// TODO: Add short and long flags support
-
 /// Represents a command-line option.
 ///
-/// - `flag`: The option flag (e.g., "--help").
+/// - `short`: The short flag (e.g., "-h"). Optional, can be null.
+/// - `long`: The long flag (e.g., "--help"). Required.
 /// - `description`: A brief description of the option.
 /// - `required`: Indicates if the option is required (defaults to `false`).
 pub const Option = struct {
-    flag: []const u8,
+    short: ?[]const u8 = null,
+    long: []const u8,
     description: []const u8,
     required: bool = false,
     option_type: OptionType = .string,
 
     pub fn isBool(self: Option) bool {
         return self.option_type == .bool;
+    }
+
+    /// Check if the given flag matches this option (either short or long form)
+    pub fn matchesFlag(self: Option, flag: []const u8) bool {
+        if (std.mem.eql(u8, flag, self.long)) {
+            return true;
+        }
+        if (self.short) |short_flag| {
+            return std.mem.eql(u8, flag, short_flag);
+        }
+        return false;
+    }
+
+    /// Get display string for help output
+    pub fn getDisplayFlag(self: Option, buffer: []u8) ![]const u8 {
+        if (self.short) |short_flag| {
+            return std.fmt.bufPrint(buffer, "{s}, {s}", .{ short_flag, self.long });
+        } else {
+            return std.fmt.bufPrint(buffer, "{s}", .{self.long});
+        }
     }
 };
 
@@ -186,7 +206,9 @@ pub const Commander = struct {
         if (has_options) {
             print("Options:\n", .{});
             for (command.options.?) |option| {
-                print("{s:<15}   {s}\n", .{ option.flag, option.description });
+                var flag_buffer: [64]u8 = undefined;
+                const display_flag = option.getDisplayFlag(&flag_buffer) catch option.long;
+                print("{s:<15}   {s}\n", .{ display_flag, option.description });
             }
         }
     }
@@ -216,7 +238,7 @@ pub const Commander = struct {
 
             // Collect all flags from args
             for (args) |arg| {
-                if (std.mem.startsWith(u8, arg, "--")) {
+                if (std.mem.startsWith(u8, arg, "--") or std.mem.startsWith(u8, arg, "-")) {
                     try flags.append(arg);
                 }
             }
@@ -225,7 +247,7 @@ pub const Commander = struct {
             for (flags.items) |flag| {
                 var found = false;
                 for (command.options.?) |option| {
-                    if (std.mem.eql(u8, flag, option.flag)) {
+                    if (option.matchesFlag(flag)) {
                         found = true;
                         break;
                     }
@@ -236,7 +258,9 @@ pub const Commander = struct {
                     print("Did you mean to use one of:\n", .{});
 
                     for (command.options.?) |option| {
-                        print("  {s}\n", .{option.flag});
+                        var flag_buffer: [64]u8 = undefined;
+                        const display_flag = option.getDisplayFlag(&flag_buffer) catch option.long;
+                        print("  {s}\n", .{display_flag});
                     }
                     return false;
                 }
@@ -247,13 +271,15 @@ pub const Commander = struct {
                 if (option.required) {
                     var present = false;
                     for (flags.items) |flag| {
-                        if (std.mem.eql(u8, flag, option.flag)) {
+                        if (option.matchesFlag(flag)) {
                             present = true;
                             break;
                         }
                     }
                     if (!present) {
-                        printError("Missing required option: {s}", .{option.flag});
+                        var flag_buffer: [64]u8 = undefined;
+                        const display_flag = option.getDisplayFlag(&flag_buffer) catch option.long;
+                        printError("Missing required option: {s}", .{display_flag});
                         return false;
                     }
                 }

@@ -53,26 +53,45 @@ pub fn ArgParser(comptime T: type) type {
             var i: usize = 0;
             while (i < self.args.len) {
                 const arg = std.mem.sliceTo(self.args[i], 0);
-                if (std.mem.startsWith(u8, arg, "--")) {
-                    const key = arg[2..];
+                // Handle both long (--flag) and short (-f) flags
+                if (std.mem.startsWith(u8, arg, "--") or (std.mem.startsWith(u8, arg, "-") and arg.len > 1 and arg[1] != '-')) {
+                    var key: []const u8 = undefined;
+                    var option_key: []const u8 = undefined;
 
-                    // Check if this is a boolean option
+                    if (std.mem.startsWith(u8, arg, "--")) {
+                        key = arg[2..];
+                        option_key = key;
+                    } else {
+                        // Short flag: find the corresponding long flag name
+                        key = arg;
+                        option_key = self.findLongFlagForShort(arg, command) orelse key[1..];
+                    }
+
+                    // Check if this is a boolean option by matching against the actual flag
                     var is_bool: bool = false;
-                    for (bool_option_indices) |idx| {
-                        if (command.options != null and i == idx) {
-                            is_bool = true;
-                            break;
+                    if (command.options) |options| {
+                        for (options, 0..options.len) |option, idx| {
+                            if (option.matchesFlag(key)) {
+                                // Check if this option index is in bool_option_indices
+                                for (bool_option_indices) |bool_idx| {
+                                    if (bool_idx == idx) {
+                                        is_bool = true;
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
                         }
                     }
 
                     if (is_bool) {
-                        try result.put(key, "true");
+                        try result.put(option_key, "true");
                         i += 1;
                     } else if (i + 1 >= self.args.len) {
                         return ArgParserError.MissingValue;
                     } else {
                         const value = std.mem.sliceTo(self.args[i + 1], 0);
-                        try result.put(key, value);
+                        try result.put(option_key, value);
                         i += 2;
                     }
                 } else {
@@ -81,6 +100,22 @@ pub fn ArgParser(comptime T: type) type {
             }
 
             return result;
+        }
+
+        /// Find the long flag name for a given short flag
+        fn findLongFlagForShort(self: *Self, short_flag: []const u8, command: anytype) ?[]const u8 {
+            _ = self;
+            if (command.options) |options| {
+                for (options) |option| {
+                    if (option.short) |short| {
+                        if (std.mem.eql(u8, short_flag, short)) {
+                            // Return the long flag without the "--" prefix
+                            return option.long[2..];
+                        }
+                    }
+                }
+            }
+            return null;
         }
     };
 }
