@@ -1,7 +1,7 @@
 const std = @import("std");
-const terminal = @import("terminal.zig");
-const Color = terminal.Color;
-const printColored = terminal.printColored;
+const stdout = @import("stdout.zig");
+const Color = stdout.Color;
+const printColored = stdout.printColored;
 
 /// Represents an animation, encapsulating its properties and behavior.
 /// Use this struct to manage animation state and logic within your application.
@@ -74,22 +74,18 @@ pub const Animation = struct {
 pub fn write(text: []const u8, delay: u64) void {
     var i: usize = 0;
 
-    const stdout = std.io.getStdOut().writer();
-
     while (i < text.len) {
-        _ = stdout.print("\r{s}", .{text[0 .. i + 1]}) catch {};
+        stdout.print("\r{s}", .{text[0 .. i + 1]});
 
         i += 1;
 
         std.time.sleep(delay * std.time.ns_per_ms);
     }
-    _ = stdout.print("\n", .{}) catch {};
+    stdout.print("\n", .{});
 }
 
 pub fn progressBar(delay: u64, message: []const u8) void {
     var i: u8 = 0;
-
-    const stdout = std.io.getStdOut().writer();
 
     while (i < 101) {
         var bar: [50]u8 = [_]u8{' '} ** 50;
@@ -98,11 +94,11 @@ pub fn progressBar(delay: u64, message: []const u8) void {
             bar[j] = '=';
         }
 
-        _ = stdout.print("\r{s}: {d}% [{s}]", .{ message, i, bar }) catch {};
+        stdout.print("\r{s}: {d}% [{s}]", .{ message, i, bar });
 
         i += 1;
 
         std.time.sleep(delay * std.time.ns_per_ms);
     }
-    _ = stdout.print("\n", .{}) catch {};
+    stdout.print("\n", .{});
 }

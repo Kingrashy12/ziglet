@@ -1,5 +1,5 @@
 const std = @import("std");
-const terminal = @import("terminal.zig");
+const stdout = @import("stdout.zig");
 
 pub const Spinner = struct {
     frames: []const []const u8,
@@ -17,29 +17,33 @@ pub const Spinner = struct {
     }
 
     pub fn tick(self: *Spinner) void {
-        terminal.setWinConsole();
-        const stdout = std.io.getStdOut().writer();
-        _ = stdout.print("\r{s} {s}", .{ self.frames[self.current], self.message }) catch {};
+        stdout.setWinConsole();
+
+        stdout.print("\r{s} {s}", .{ self.frames[self.current], self.message });
         self.current = (self.current + 1) % self.frames.len;
+
         std.time.sleep(100 * std.time.ns_per_ms);
+        // std.Thread.sleep(80 * std.time.ns_per_ms);
     }
 
     pub fn stop(self: *Spinner, message: []const u8) void {
-        terminal.setWinConsole();
-        _ = self;
-        const stdout = std.io.getStdOut().writer();
-        _ = stdout.print("\r{s}\n", .{message}) catch {};
+        stdout.setWinConsole();
+
+        _ = self.timer.lap();
+        stdout.print("\r{s}\n", .{message});
     }
 
     pub fn failed(self: *Spinner, message: []const u8) void {
-        terminal.setWinConsole();
-        _ = self;
-        terminal.printColored(.red, "\r❌ {s}\n", .{message});
+        stdout.setWinConsole();
+
+        _ = self.timer.lap();
+        stdout.printColored(.red, "\r❌ {s}\n", .{message});
     }
 
     pub fn success(self: *Spinner, message: []const u8) void {
-        terminal.setWinConsole();
-        _ = self;
-        terminal.printColored(.green, "\r✅ {s}\n", .{message});
+        stdout.setWinConsole();
+
+        _ = self.timer.lap();
+        stdout.printColored(.green, "\r✅ {s}\n", .{message});
     }
 };

@@ -22,42 +22,66 @@ zig fetch --save git+https://github.com/Kingrashy12/ziglet
 ```zig
   // Add the ziglet dependency
   const ziglet_dep = b.dependency("ziglet", .{
-     .target = target,
-     .optimize = optimize,
-   });
+      .target = target,
+      .optimize = optimize,
+    });
 
-   // Add the ziglet module to the executable
-   exe.root_module.addImport("ziglet", ziglet_dep.module("ziglet"));
+    // Add the ziglet module to the executable
+    exe.root_module.addImport("ziglet", ziglet_dep.module("ziglet"));
 ```
 
 3. Import and use in your code:
 
 ```zig
 const std = @import("std");
-const ziglet = @import("ziglet");
+const root = @import("ziglet");
+const ActionArg = root.BuilderTypes.ActionArg;
+const CLIBuilder = root.CLIBuilder;
 
 pub fn main() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
+    defer _ = gpa.deinit();
 
-    const allocator = arena.allocator();
+    const allocator = gpa.allocator();
 
-    var commander = try ziglet.Commander.init(allocator, "my-cli", "0.1.0", null);
-    defer commander.deinit();
+    const args = try std.process.argsAlloc(allocator);
+    defer std.process.argsFree(allocator, args);
 
-    // Define a simple command
-    try commander.addCommand("greet", "Say Hello", greetFn, null);
+    var cli = CLIBuilder.init(allocator, "my-cli", "0.1.0", "A simple CLI example");
+    defer cli.deinit();
 
-    try commander.checkArgs();
+    // Add a command with options
+    cli.addCommand(.{
+        .name = "greet",
+        .description = "Greet someone",
+        .action = greet,
+        .options = cli.defOptions(&.{.{
+            .name = "name",
+            .alias = "n",
+            .type = .string,
+            .required = true,
+            .description = "Name to greet",
+        }}),
+    });
 
-    try commander.executeCommand();
+    try cli.parse(args, null);
 }
 
-// The function to execute
-fn greetFn(self: *ziglet.Commander) !void {
-    std.debug.print("Hello from {s}!\n", .{self.name});
+fn greet(arg: ActionArg) !void {
+    const name = arg.options.get("name");
+
+    if (name) |n| {
+        std.debug.print("Hello, {s}!\n", .{n.string});
+    }
 }
 ```
+
+## 📖 Examples
+
+For more comprehensive examples, see the [examples/](examples/) directory:
+
+- [Basic CLI with CLIBuilder](examples/plain.zig) - Demonstrates commands with options, global options, and actions.
+- [Factory pattern CLI](examples/factory.zig) - Shows a fluent API for building commands.
 
 ## 🤝 Contributing
 
