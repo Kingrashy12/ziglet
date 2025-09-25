@@ -42,14 +42,6 @@ pub fn build(b: *std.Build) void {
     plain_example.root_module.addImport("ziglet", root);
     b.installArtifact(factory_example);
 
-    const run_factory = b.addRunArtifact(factory_example);
-    const factory_step = b.step("factory", "Run the factory example");
-    factory_step.dependOn(&run_factory.step);
-
-    const run_plain = b.addRunArtifact(plain_example);
-    const plain_step = b.step("plain", "Run the plain example");
-    plain_step.dependOn(&run_plain.step);
-
     const lib = b.addLibrary(.{
         .root_module = root,
         .name = "ziglet",
@@ -64,14 +56,14 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&run_tests.step);
 
-    // Add run step for factory module
+    // Add run step for factory and plain module
     const run_cmd = b.addRunArtifact(factory_example);
     const run_plain_cmd = b.addRunArtifact(plain_example);
     if (b.args) |args| {
         run_cmd.addArgs(args);
         run_plain_cmd.addArgs(args);
     }
-    const run_step = b.step("run", "Run the factory example");
+    const run_step = b.step("run_factory", "Run the factory example");
     const run_plain_step = b.step("run_plain", "Run the plain example");
     run_step.dependOn(&run_cmd.step);
     run_plain_step.dependOn(&run_plain_cmd.step);
