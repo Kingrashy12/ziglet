@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **Commander Removed**: The previous `Commander` API has been **removed** and replaced with the new **`CLIBuilder`**.
+  - Old usage with `ziglet.Commander` has been removed.
+  - Use `ziglet.CLIBuilder` for creating and managing commands.
 - **API Changes**: The `parse()` function now requires a second parameter `builder_commands: ?[]const *CommandBuilder` when using factory pattern
 - **Action Functions**: All command action functions must now accept `ActionArg` struct instead of separate args and options parameters
 - **Option Definition**: Options are now defined using `CLIOption` struct with more structured fields
@@ -30,3 +33,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Examples
 
 - Added comprehensive examples in `examples/` directory demonstrating global options, multiple commands, and factory pattern usage
+
+#### Previous usage (Commander)
+
+```zig
+var commander = try ziglet.Commander.init(allocator, "example-cli", "0.1.0", null);
+defer commander.deinit();
+
+try commander.addCommand("greet", "Greet someone", greetFn, null);
+try commander.checkArgs();
+try commander.executeCommand();
+```
+
+#### New usage (CLIBuilder)
+
+```zig
+var cli = CLIBuilder.init(allocator, "example-cli", "0.1.0", "A simple example CLI using CLIBuilder.");
+defer cli.deinit();
+
+cli.setGlobalOptions();
+
+cli.addCommand(.{
+    .name = "greet",
+    .description = "Greet someone",
+    .action = greet,
+    .options = cli.defOptions(&.{
+        .{
+            .name = "name",
+            .alias = "n",
+            .type = .string,
+            .required = true,
+            .description = "Name to greet",
+        },
+    }),
+});
+
+try cli.parse(args, null);
+```

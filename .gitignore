@@ -1,5 +1,4 @@
 /zig-out
 /.zig-cache
-/src/example.zig
 src/main_.zig
 regex.zig
