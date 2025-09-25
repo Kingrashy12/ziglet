@@ -1,8 +1,8 @@
 const std = @import("std");
-const root = @import("ziglet");
-const ActionArg = root.BuilderTypes.ActionArg;
-const CLIOption = root.CLIOption;
-const CLIBuilder = root.CLIBuilder;
+const ziglet = @import("ziglet");
+const ActionArg = ziglet.BuilderTypes.ActionArg;
+const CLIOption = ziglet.CLIOption;
+const CLIBuilder = ziglet.CLIBuilder;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
