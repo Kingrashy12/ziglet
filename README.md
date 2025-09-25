@@ -21,10 +21,7 @@ zig fetch --save git+https://github.com/Kingrashy12/ziglet
 
 ```zig
   // Add the ziglet dependency
-  const ziglet_dep = b.dependency("ziglet", .{
-      .target = target,
-      .optimize = optimize,
-    });
+  const ziglet_dep = b.dependency("ziglet", .{});
 
     // Add the ziglet module to the executable
     exe.root_module.addImport("ziglet", ziglet_dep.module("ziglet"));
