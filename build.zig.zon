@@ -5,7 +5,7 @@
 
     .description = "A concise and powerful CLI builder for Zig.",
 
-    .fingerprint = 0x92ee7ff2c71be2ee,
+    .fingerprint = 0x27874d01f2b14f8a,
 
     .minimum_zig_version = "0.15.1",
 
