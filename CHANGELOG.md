@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-10-25
+
+### Added
+
+- **Allocator Field in ActionArg**: Added `allocator` field to `ActionArg` struct for improved memory management in action handlers
+- **CLI Utilities Module**: New `cli_utils.zig` module with utility functions (`takeBool`, `takeString`, `takeNumber`) for type-safe value extraction in CLI action functions
+
+### Changed
+
+- **Module Renaming**: Renamed `stdout` module to `terminal` across utils and core files for better naming consistency
+- **Parser Improvements**: Enhanced boolean option handling in the parser
+- **Project Metadata**: Updated version to 0.2.0 and refreshed project metadata
+
+### Removed
+
+- **Deprecated Install File**: Removed `install.zig` file and associated functionality
+
 ## [0.1.4] - 2025-09-25
 
 ### Added
