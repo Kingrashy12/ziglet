@@ -12,6 +12,9 @@ pub fn takeBool(value: Value) bool {
             return true;
         } else if (std.mem.eql(u8, string_value, "false")) {
             return false;
+        } else {
+            terminal.printError("value is not a boolean.", .{});
+            std.process.exit(1);
         }
     } else {
         terminal.printError("value is not a boolean.", .{});
