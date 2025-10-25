@@ -1,11 +1,11 @@
 .{
     .name = .ziglet,
 
-    .version = "0.1.4",
+    .version = "0.2.0",
 
-    .description = "Ziglet is a lightweight command-line interface (CLI) builder.",
+    .description = "A concise and powerful CLI builder for Zig.",
 
-    .fingerprint = 0x27874d01f0e9219a,
+    .fingerprint = 0x92ee7ff2c71be2ee,
 
     .minimum_zig_version = "0.15.1",
 

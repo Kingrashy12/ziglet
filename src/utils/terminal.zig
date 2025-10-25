@@ -42,13 +42,18 @@ pub const Color = enum {
     }
 };
 
-pub fn print(comptime format: []const u8, args: anytype) void {
-    var buffer: [1024 * 1024]u8 = undefined;
+pub fn print(comptime fmt: []const u8, args: anytype) void {
+    var buffer: [1024]u8 = undefined;
     var stdout_writer = std.fs.File.stdout().writer(&buffer);
     var stdout = &stdout_writer.interface;
 
-    stdout.print(format, args) catch {};
-    defer stdout.flush() catch {};
+    stdout.print(fmt, args) catch |err| {
+        std.log.err("{s}Failed to write to stdout: {s}{s}\n", .{ Color.ansiCode(.red), @errorName(err), Color.ansiCode(.reset) });
+    };
+
+    defer stdout.flush() catch |err| {
+        std.log.err("{s}Failed to flush: {s}{s}\n", .{ Color.ansiCode(.red), @errorName(err), Color.ansiCode(.reset) });
+    };
 }
 
 /// Caller owns the returned memory

@@ -7,3 +7,4 @@ pub const CLIOption = BuilderTypes.CLIOption;
 pub const ActionArg = BuilderTypes.ActionArg;
 pub const CLIConfig = BuilderTypes.CLIConfig;
 pub const CLICommand = BuilderTypes.CLICommand;
+pub const CLIUtils = @import("cli_utils.zig");

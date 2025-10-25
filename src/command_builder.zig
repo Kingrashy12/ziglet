@@ -2,7 +2,6 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Parser = @import("parser.zig");
 const types = @import("types.zig");
-const stdout = @import("root.zig").utils.stdout;
 const CommandBuilder = types.CommandBuilder;
 const CLICommand = types.CLICommand;
 const CLIBuilder = @import("cli_builder.zig");

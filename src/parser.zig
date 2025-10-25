@@ -4,7 +4,7 @@ const types = @import("types.zig");
 const CLIOption = types.CLIOption;
 const CLIArgument = types.CLIArgument;
 const ParsedArgs = types.ParsedArgs;
-const stdout = @import("root.zig").utils.stdout;
+const terminal = @import("root.zig").utils.terminal;
 
 allocator: Allocator,
 optionCache: std.StringHashMap(CLIOption),
@@ -165,20 +165,42 @@ fn parseOption(token: []const u8, tokens: [][:0]u8, index: usize) !struct { name
 
 fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Value {
     const allocator = self.allocator;
-    if (value == .bool and option.type != .number) {
+
+    if (value == .bool and option.type == .bool) {
         return value;
     }
 
     switch (option.type) {
+        .bool => {
+            if (value == .string) {
+                const string_value = value.string;
+
+                if (std.mem.eql(u8, string_value, "true")) {
+                    return types.Value{ .bool = true };
+                } else if (std.mem.eql(u8, string_value, "false")) {
+                    return types.Value{ .bool = false };
+                } else {
+                    terminal.printColored(.red, "Option '{s}' expects bool but got '{s}' which can not be converted to boolean.\n", .{ option.name, @tagName(value) });
+                    std.debug.print("\nOption '{s}' expects bool but got: {s}.\n", .{ option.name, @tagName(value) });
+                    std.process.exit(1);
+                }
+            } else if (value != .bool) {
+                terminal.printColored(.red, "Option '{s}' expects bool but got: {s}.\n", .{ option.name, @tagName(value) });
+                std.debug.print("\nOption '{s}' expects bool but got: {s}.\n", .{ option.name, @tagName(value) });
+                std.process.exit(1);
+            }
+
+            return value;
+        },
         .number => {
             if (value == .bool) {
-                stdout.printColored(.red, "Option '{s}' expects a number, got: {s}.\n", .{ option.name, @tagName(value) });
+                terminal.printColored(.red, "Option '{s}' expects number but got: {s}.\n", .{ option.name, @tagName(value) });
                 std.process.exit(1);
             } else {
                 const res = parseNumber(value.string);
 
                 if (res != .number) {
-                    stdout.printColored(.red, "Option '{s}' expects a number, got: {s}.\n", .{ option.name, @tagName(value) });
+                    terminal.printColored(.red, "Option '{s}' expects number but got: {s}.\n", .{ option.name, @tagName(value) });
                     std.process.exit(1);
                 }
 
@@ -189,15 +211,15 @@ fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Va
             const res = parseNumber(value.string);
 
             if (res != .string) {
-                stdout.printColored(.red, "Option '{s}' expects a string, got: {s}.\n", .{ option.name, @tagName(res) });
+                terminal.printColored(.red, "Option '{s}' expects string but got: {s}.\n", .{ option.name, @tagName(res) });
                 std.process.exit(1);
             }
 
             if (option.choices != null and option.choices.?.len >= 1) {
                 var choices_array: std.ArrayList([]const u8) = .empty;
                 for (option.choices.?, 0..) |choice, i| {
-                    choices_array.append(allocator, choice) catch stdout.printError("Out of memory.", .{});
-                    if (option.choices.?.len > 1 and i < option.choices.?.len - 1) choices_array.append(allocator, ", ") catch stdout.printError("Out of memory.", .{});
+                    choices_array.append(allocator, choice) catch terminal.printError("Out of memory.", .{});
+                    if (option.choices.?.len > 1 and i < option.choices.?.len - 1) choices_array.append(allocator, ", ") catch terminal.printError("Out of memory.", .{});
                 }
 
                 const choices = choices_array.toOwnedSlice(allocator) catch unreachable;
@@ -216,18 +238,17 @@ fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Va
                 }
 
                 if (found == false) {
-                    stdout.printColored(.red, "Option '{s}' must be one of: [", .{option.name});
+                    terminal.printColored(.red, "Option '{s}' must be one of: [", .{option.name});
 
                     for (choices) |choice| {
-                        stdout.printColored(.red, "{s}", .{choice});
+                        terminal.printColored(.red, "{s}", .{choice});
                     }
-                    stdout.printColored(.red, "]", .{});
+                    terminal.printColored(.red, "]", .{});
                     std.process.exit(1);
                 }
             }
             return value;
         },
-        else => return value,
     }
 }
 
@@ -237,7 +258,7 @@ fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Va
 //     for (args) |arg| {
 //         if (argIndex >= parsed.args.length) {
 //             if (arg.required) {
-//                 stdout.printColored(.red, "Missing required argument: {s}\n", .{arg.name});
+//                 terminal.printColored(.red, "Missing required argument: {s}\n", .{arg.name});
 //                 std.process.exit(1);
 //             }
 //             break;
@@ -264,7 +285,7 @@ pub fn validateOptions(self: *Self, parsed: ParsedArgs, options: []CLIOption) !P
 
     if (missing_options.items.len > 0) {
         const alias = if (missing_options.items[0].alias) |a| a else "";
-        stdout.printColored(.red, "Missing required option: --{s} (-{s})", .{ missing_options.items[0].name, alias });
+        terminal.printColored(.red, "Missing required option: --{s} (-{s})", .{ missing_options.items[0].name, alias });
         std.process.exit(1);
     }
 
@@ -273,49 +294,6 @@ pub fn validateOptions(self: *Self, parsed: ParsedArgs, options: []CLIOption) !P
     return parsed;
 }
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
-    defer _ = gpa.deinit();
-
-    const allocator = gpa.allocator();
-
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
-
-    var parser = init(allocator);
-
-    const parsed = try parser.parse(args, &.{
-        CLIOption{
-            .alias = "p",
-            .name = "port",
-            .default = .{ .number = 7000 },
-            .type = .number,
-            .description = "App port",
-        },
-        CLIOption{
-            .alias = "r",
-            .name = "root",
-            .type = .string,
-            .choices = @constCast(&[_][]const u8{
-                "main",
-                "app",
-            }),
-            .description = "Root source of your project.",
-            .default = .{ .string = "app" },
-            .required = true,
-        },
-    });
-    var parsed_op = parsed.options;
-
-    defer {
-        parser.deinit();
-        parsed_op.deinit();
-        allocator.free(parsed.args);
-        allocator.free(parsed.command);
-    }
-}
-
-// TODO: Write a proper test
 test "parser - basic command with option and argument" {
     const allocator = std.testing.allocator;
 
@@ -323,12 +301,20 @@ test "parser - basic command with option and argument" {
     defer parser.deinit();
 
     // Setup test arguments
-    const args = try allocator.alloc([:0]u8, 3);
-    defer allocator.free(args);
+    const args = try allocator.alloc([:0]u8, 5);
+    defer {
+        // Free each argument created by toSentinel
+        for (args) |arg| {
+            allocator.free(arg);
+        }
+        allocator.free(args);
+    }
 
-    args[0] = try makeSentinelArg(allocator, "install");
-    args[1] = try makeSentinelArg(allocator, "-D");
-    args[2] = try makeSentinelArg(allocator, "pk1");
+    args[0] = try toSentinel(allocator, ""); // skip, parser start tokens from index 1 of the argv `argv[1..]`
+    args[1] = try toSentinel(allocator, "install");
+    args[2] = try toSentinel(allocator, "-D");
+    args[3] = try toSentinel(allocator, "true");
+    args[4] = try toSentinel(allocator, "pk1");
 
     // Define CLI options for testing
     const options = &[_]CLIOption{.{
@@ -341,8 +327,8 @@ test "parser - basic command with option and argument" {
     // Parse arguments
     var parsed = try parser.parse(args, options);
     defer {
-        allocator.free(parsed.args);
         allocator.free(parsed.command);
+        allocator.free(parsed.args);
         parsed.options.deinit();
     }
 
@@ -359,10 +345,8 @@ test "parser - basic command with option and argument" {
     try std.testing.expectEqualStrings("pk1", parsed.args[0]);
 }
 
-// Helper to build [:0]u8 slices
-fn makeSentinelArg(allocator: std.mem.Allocator, str: []const u8) ![:0]u8 {
-    const with_null = try std.mem.concat(allocator, u8, &[_][]const u8{ str, &[_]u8{0} });
-
-    // Coerce to sentinel slice
-    return with_null.ptr[0..with_null.len :0];
+fn toSentinel(allocator: std.mem.Allocator, slice: []const u8) ![:0]u8 {
+    const result = try allocator.allocSentinel(u8, slice.len, 0);
+    @memcpy(result[0..slice.len], slice);
+    return result;
 }

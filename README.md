@@ -1,6 +1,6 @@
-# 🐣 Ziglet – Your Minimalist CLI Builder in Zig
+# Ziglet
 
-Ziglet is a lightweight command-line interface (CLI) builder. It lets you effortlessly define custom commands and execute them using Ziglet's core, giving you a flexible and blazing-fast CLI tool tailored to your needs.
+A concise and powerful CLI builder for Zig.
 
 ## ✨ Features
 
@@ -21,10 +21,10 @@ zig fetch --save git+https://github.com/Kingrashy12/ziglet
 
 ```zig
   // Add the ziglet dependency
-  const ziglet_dep = b.dependency("ziglet", .{});
+  const ziglet = b.dependency("ziglet", .{});
 
-    // Add the ziglet module to the executable
-    exe.root_module.addImport("ziglet", ziglet_dep.module("ziglet"));
+  // Add the ziglet module to the executable
+  exe.root_module.addImport("ziglet", ziglet.module("ziglet"));
 ```
 
 3. Import and use in your code:

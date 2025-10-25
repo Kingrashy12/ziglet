@@ -2,13 +2,13 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Parser = @import("parser.zig");
 const types = @import("types.zig");
-const stdout = @import("root.zig").utils.stdout;
+const terminal = @import("root.zig").utils.terminal;
 const CLIOption = types.CLIOption;
 const CLICommand = types.CLICommand;
 const CommandBuilder = @import("command_builder.zig");
-const printColored = stdout.printColored;
-const print = stdout.print;
-const color = stdout.Color;
+const printColored = terminal.printColored;
+const print = terminal.print;
+const color = terminal.Color;
 
 const Self = @This();
 
@@ -172,7 +172,11 @@ pub fn parse(self: *Self, argv: [][:0]u8, builder_commands: ?[]const *CommandBui
 
     const validated_parsed = try parser.validateOptions(command_parsed, merged_options);
 
-    try found_command.action(.{ .args = validated_parsed.args, .options = validated_parsed.options });
+    try found_command.action(.{
+        .args = validated_parsed.args,
+        .options = validated_parsed.options,
+        .allocator = self.allocator,
+    });
 
     defer self.allocator.free(merged_options);
     defer self.allocator.free(command_parsed.command);
@@ -227,7 +231,7 @@ pub fn showHelp(self: *Self) void {
     self.listCommands();
     self.showGlobalOptions();
 
-    stdout.print("\nRun \"{s} <command> --help\" for more information about a command.\n", .{self.name});
+    terminal.print("\nRun \"{s} <command> --help\" for more information about a command.\n", .{self.name});
 }
 
 fn showCommandHelp(self: *Self, command_name: []const u8) void {
@@ -290,10 +294,10 @@ fn showGlobalOptions(self: *Self) void {
             };
 
             const default_value = switch (value) {
-                .string => |default| stdout.coloredWithArgs(self.allocator, "(default: {s})", .{default}, .gray),
-                .number => |default| stdout.coloredWithArgs(self.allocator, "(default: {d})", .{default}, .gray),
-                .bool => |default| stdout.coloredWithArgs(self.allocator, "(default: {})", .{default}, .gray),
-                else => stdout.coloredWithArgs(self.allocator, "", .{}, .gray),
+                .string => |default| terminal.coloredWithArgs(self.allocator, "(default: {s})", .{default}, .gray),
+                .number => |default| terminal.coloredWithArgs(self.allocator, "(default: {d})", .{default}, .gray),
+                .bool => |default| terminal.coloredWithArgs(self.allocator, "(default: {})", .{default}, .gray),
+                else => terminal.coloredWithArgs(self.allocator, "", .{}, .gray),
             };
 
             defer self.allocator.free(default_value);

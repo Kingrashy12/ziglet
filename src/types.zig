@@ -28,7 +28,7 @@ pub const CLIOption = struct {
     choices: ?[][]const u8 = null,
 };
 
-pub const ActionArg = struct { args: [][]u8, options: std.StringHashMap(Value) };
+pub const ActionArg = struct { args: [][]u8, options: std.StringHashMap(Value), allocator: std.mem.Allocator };
 
 pub const CLICommand = struct {
     name: []const u8,
