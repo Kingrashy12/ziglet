@@ -150,7 +150,7 @@ pub fn select(allocator: Allocator, options: []const []const u8, message: []cons
     while (true) {
         std.debug.print("> ", .{});
 
-        const slice = try read(allocator, 5);
+        const slice = try read(allocator, 10);
         defer allocator.free(slice);
 
         const index = std.fmt.parseInt(usize, slice, 10) catch {
@@ -172,7 +172,7 @@ pub fn select(allocator: Allocator, options: []const []const u8, message: []cons
 pub fn confirm(allocator: Allocator, message: []const u8) !bool {
     std.debug.print("{s} (y/n): ", .{message});
 
-    const slice = try read(allocator, 2);
+    const slice = try read(allocator, 10);
     defer allocator.free(slice);
 
     if (std.mem.eql(u8, slice, "y")) {
@@ -185,18 +185,22 @@ pub fn confirm(allocator: Allocator, message: []const u8) !bool {
     }
 }
 
+/// Reads input from stdin, filtering out non-alphanumeric characters and spaces.
+///
+/// - `allocator`: The allocator to use for memory allocation.
+/// - `max_size`: The maximum size of input to read.
+///
 /// Caller owns the returned memory
-/// - max_size
-pub fn read(allocator: std.mem.Allocator, max_size: usize) ![]const u8 {
-    var buffer: [max_size]u8 = undefined;
-    var input: [max_size]u8 = undefined;
+pub fn read(allocator: std.mem.Allocator, comptime max_size: usize) ![]const u8 {
+    var stdin_buffer: [max_size]u8 = undefined;
+    var stdin_reader = std.fs.File.stdin().reader(&stdin_buffer);
+    const stdin = &stdin_reader.interface;
 
-    var stdin_reader = std.fs.File.stdin().reader(&buffer);
-    _ = try stdin_reader.read(&input);
+    const line = try stdin.takeDelimiterExclusive('\n');
 
     var filtered_list: std.ArrayList(u8) = .empty;
 
-    for (input) |char| {
+    for (line) |char| {
         if (char != ' ' and std.ascii.isAlphanumeric(char)) {
             try filtered_list.append(allocator, char);
         }
