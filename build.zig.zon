@@ -1,7 +1,7 @@
 .{
     .name = .ziglet,
 
-    .version = "0.2.2",
+    .version = "0.2.3",
 
     .description = "A concise and powerful CLI builder for Zig.",
 
