@@ -83,7 +83,7 @@ pub fn printError(comptime fmt: []const u8, args: anytype) void {
 }
 
 pub fn clearConsole() void {
-    print("\x1B[2J\x1B[3J\x1B[H", {});
+    print("\x1B[2J\x1B[3J\x1B[H", .{});
 }
 
 /// Set console to UTF-8 on Windows
@@ -111,7 +111,7 @@ pub fn readInput(allocator: std.mem.Allocator, prompt: ?[]const u8) ![]const u8 
         std.debug.print("{s}: ", .{p});
     }
 
-    const slice = try read(allocator, 100, false);
+    const slice = try readLine(allocator, 100, false);
     defer allocator.free(slice);
 
     return allocator.dupe(u8, std.mem.trim(u8, slice, "\n\r"));
@@ -127,7 +127,7 @@ pub fn readInputNum(allocator: Allocator, prompt: ?[]const u8) !u8 {
         std.debug.print("{s}: ", .{p});
     }
 
-    const slice = try read(allocator, 10, false);
+    const slice = try readLine(allocator, 10, false);
     defer allocator.free(slice);
 
     return try std.fmt.parseInt(u8, slice, 10);
@@ -150,7 +150,7 @@ pub fn select(allocator: Allocator, options: []const []const u8, message: []cons
     while (true) {
         std.debug.print("> ", .{});
 
-        const slice = try read(allocator, 10, false);
+        const slice = try readLine(allocator, 10, false);
         defer allocator.free(slice);
 
         const index = std.fmt.parseInt(usize, slice, 10) catch {
@@ -172,7 +172,7 @@ pub fn select(allocator: Allocator, options: []const []const u8, message: []cons
 pub fn confirm(allocator: Allocator, message: []const u8) !bool {
     std.debug.print("{s} (y/n): ", .{message});
 
-    const slice = try read(allocator, 10, true);
+    const slice = try readLine(allocator, 10, true);
     defer allocator.free(slice);
 
     if (std.mem.eql(u8, slice, "y")) {
@@ -191,7 +191,7 @@ pub fn confirm(allocator: Allocator, message: []const u8) !bool {
 /// - `max_size`: The maximum size of input to read.
 ///
 /// Caller owns the returned memory
-pub fn read(allocator: std.mem.Allocator, comptime max_size: usize, to_lower: bool) ![]const u8 {
+pub fn readLine(allocator: std.mem.Allocator, comptime max_size: usize, to_lower: bool) ![]const u8 {
     var stdin_buffer: [max_size]u8 = undefined;
     var stdin_reader = std.fs.File.stdin().reader(&stdin_buffer);
     const stdin = &stdin_reader.interface;
@@ -201,9 +201,12 @@ pub fn read(allocator: std.mem.Allocator, comptime max_size: usize, to_lower: bo
     var filtered_list: std.ArrayList(u8) = .empty;
 
     for (line) |char| {
-        if (char != ' ' and std.ascii.isAlphanumeric(char)) {
-            const c = if (to_lower) std.ascii.toLower(char) else char;
-            try filtered_list.append(allocator, c);
+        switch (char) {
+            '@', '-', ' ', '0'...'9', 'A'...'Z', 'a'...'z', '_', '/', '\\', '#', '$', '.', '^', '%', '!', '*', '+', ',', ';', '~', '`', '=', '(', ')', '?', '>', '<', '[', ']' => {
+                const c = if (to_lower) std.ascii.toLower(char) else char;
+                try filtered_list.append(allocator, c);
+            },
+            else => {},
         }
     }
 
