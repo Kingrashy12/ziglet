@@ -41,6 +41,10 @@ pub fn parse(self: *Self, argv: [][:0]u8, options: []const CLIOption) !ParsedArg
     var commands: std.ArrayList([]u8) = .empty;
     var args: std.ArrayList([]u8) = .empty;
 
+    errdefer args.deinit(self.allocator);
+    errdefer commands.deinit(self.allocator);
+    errdefer parsed.options.deinit();
+
     var i: usize = 0;
 
     const tokens = argv[1..];

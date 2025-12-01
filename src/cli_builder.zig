@@ -125,28 +125,27 @@ pub fn parse(self: *Self, argv: [][:0]u8, builder_commands: ?[]const *CommandBui
     var parser = Parser.init(self.allocator);
     defer parser.deinit();
 
-    var parsed = try parser.parse(argv, self.globalOptions.items);
+    defer freeBuilderOptions(builder_commands);
 
-    var parsed_op = parsed.options;
-    defer parsed_op.deinit();
-    defer self.allocator.free(parsed.command);
-    defer self.allocator.free(parsed.args);
+    var parsed = try parser.parse(argv, self.globalOptions.items);
+    defer {
+        self.allocator.free(parsed.command);
+        self.allocator.free(parsed.args);
+        parsed.options.deinit();
+    }
 
     if (parsed.options.get("help")) |_| {
         self.helpCommand(parsed.command);
-        defer freeBuilderOptions(builder_commands);
         return;
     }
 
     if (parsed.options.get("version")) |_| {
         printColored(.white, "v{s}\n", .{self.version});
-        defer freeBuilderOptions(builder_commands);
         return;
     }
 
     if (argv.len == 1) {
         self.showHelp();
-        defer freeBuilderOptions(builder_commands);
         return;
     }
 
@@ -162,13 +161,18 @@ pub fn parse(self: *Self, argv: [][:0]u8, builder_commands: ?[]const *CommandBui
         printColored(.red, "Unknown command: {s}\n", .{command_name});
         printColored(.yellow, "\nAvailable commands: ", .{});
         self.listCommands();
-        defer freeBuilderOptions(builder_commands);
         return;
     }
 
     const merged_options = try self.mergeOptions(found_command.options);
+    defer self.allocator.free(merged_options);
 
     var command_parsed = try parser.parse(argv, merged_options);
+    defer {
+        self.allocator.free(command_parsed.command);
+        self.allocator.free(command_parsed.args);
+        command_parsed.options.deinit();
+    }
 
     const validated_parsed = try parser.validateOptions(command_parsed, merged_options);
 
@@ -177,13 +181,6 @@ pub fn parse(self: *Self, argv: [][:0]u8, builder_commands: ?[]const *CommandBui
         .options = validated_parsed.options,
         .allocator = self.allocator,
     });
-
-    defer self.allocator.free(merged_options);
-    defer self.allocator.free(command_parsed.command);
-    defer self.allocator.free(command_parsed.args);
-    defer command_parsed.options.deinit();
-
-    defer freeBuilderOptions(builder_commands);
 }
 
 fn helpCommand(self: *Self, parsed_commands: [][]u8) void {
