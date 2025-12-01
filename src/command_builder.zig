@@ -14,7 +14,7 @@ parent: *CLIBuilder,
 allocator: Allocator,
 options: std.ArrayList(CLIOption),
 
-fn default(args: types.ActionArg) anyerror!void {
+fn default(args: types.CommandContext) anyerror!void {
     _ = args;
 }
 
@@ -57,7 +57,7 @@ pub fn option(self: *const Self, config: CLIOption) *Self {
 
 pub fn action(
     self: *const Self,
-    handler: *const fn (types.ActionArg) anyerror!void,
+    handler: *const fn (types.CommandContext) anyerror!void,
 ) *Self {
     var cast_self: *Self = @constCast(self);
     cast_self.cmd.action = handler;

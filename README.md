@@ -34,7 +34,7 @@ zig fetch --save git+https://github.com/Kingrashy12/ziglet
 ```zig
 const std = @import("std");
 const ziglet = @import("ziglet");
-const ActionArg = ziglet.BuilderTypes.ActionArg;
+const CommandContext = ziglet.BuilderTypes.CommandContext;
 const CLIBuilder = ziglet.CLIBuilder;
 
 pub fn main() !void {
@@ -66,7 +66,7 @@ pub fn main() !void {
     try cli.parse(args, null);
 }
 
-fn greet(arg: ActionArg) !void {
+fn greet(arg: CommandContext) !void {
     const name = arg.options.get("name");
 
     if (name) |n| {
@@ -113,7 +113,7 @@ cli.addCommand(.{
 try cli.parse(args, null);
 
 // In your action function, access both global and command options
-fn greet(arg: ActionArg) !void {
+fn greet(arg: CommandContext) !void {
     const verbose = arg.options.get("verbose");
     const name = arg.options.get("name");
 
@@ -185,7 +185,7 @@ _ = cli.command("status", "Show status")
 // Parse with factory commands
 try cli.parse(args, &.{ greet_cmd, calc_cmd });
 
-fn greet(arg: ActionArg) !void {
+fn greet(arg: CommandContext) !void {
     const name = arg.options.get("name");
     std.debug.print("Greeting someone.\n", .{});
 
@@ -194,7 +194,7 @@ fn greet(arg: ActionArg) !void {
     }
 }
 
-fn calc(arg: ActionArg) !void {
+fn calc(arg: CommandContext) !void {
     const a_opt = arg.options.get("a");
     const b_opt = arg.options.get("b");
 
@@ -204,7 +204,7 @@ fn calc(arg: ActionArg) !void {
     }
 }
 
-fn status(arg: ActionArg) !void {
+fn status(arg: CommandContext) !void {
     _ = arg;
     std.debug.print("System status: All good!\n", .{});
 }

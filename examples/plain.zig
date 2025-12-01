@@ -1,6 +1,6 @@
 const std = @import("std");
 const ziglet = @import("ziglet");
-const ActionArg = ziglet.BuilderTypes.ActionArg;
+const CommandContext = ziglet.BuilderTypes.CommandContext;
 const CLIOption = ziglet.CLIOption;
 const CLIBuilder = ziglet.CLIBuilder;
 
@@ -80,7 +80,7 @@ pub fn main() !void {
     try cli.parse(args, null);
 }
 
-fn greet(arg: ActionArg) !void {
+fn greet(arg: CommandContext) !void {
     const name = arg.options.get("name");
     const verbose = arg.options.get("verbose");
 
@@ -93,7 +93,7 @@ fn greet(arg: ActionArg) !void {
     }
 }
 
-fn calc(arg: ActionArg) !void {
+fn calc(arg: CommandContext) !void {
     const a_opt = arg.options.get("a");
     const b_opt = arg.options.get("b");
     const verbose = arg.options.get("verbose");
@@ -108,7 +108,7 @@ fn calc(arg: ActionArg) !void {
     };
 }
 
-fn install(arg: ActionArg) !void {
+fn install(arg: CommandContext) !void {
     std.debug.print("Running 'install' action.\n", .{});
 
     if (arg.options.get("dev")) |_| {

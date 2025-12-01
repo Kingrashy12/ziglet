@@ -28,13 +28,13 @@ pub const CLIOption = struct {
     choices: ?[][]const u8 = null,
 };
 
-pub const ActionArg = struct { args: [][]u8, options: std.StringHashMap(Value), allocator: std.mem.Allocator };
+pub const CommandContext = struct { args: [][]u8, options: std.StringHashMap(Value), allocator: std.mem.Allocator };
 
 pub const CLICommand = struct {
     name: []const u8,
     description: []const u8,
     options: ?[]CLIOption = null,
-    action: *const fn (ActionArg) anyerror!void,
+    action: *const fn (CommandContext) anyerror!void,
     // subcommands: ?[]CLICommand,
 };
 
