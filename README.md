@@ -43,8 +43,8 @@ pub fn main() !void {
 
     const allocator = gpa.allocator();
 
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
+    const argv = try std.process.argsAlloc(allocator);
+    defer std.process.argsFree(allocator, argv);
 
     var cli = CLIBuilder.init(allocator, "my-cli", "0.1.0", "A simple CLI example");
     defer cli.deinit();
@@ -63,11 +63,11 @@ pub fn main() !void {
         }}),
     });
 
-    try cli.parse(args, null);
+    try cli.parse(argv, null);
 }
 
-fn greet(arg: CommandContext) !void {
-    const name = arg.options.get("name");
+fn greet(ctx: CommandContext) !void {
+    const name = ctx.options.get("name");
 
     if (name) |n| {
         std.debug.print("Hello, {s}!\n", .{n.string});
@@ -113,9 +113,9 @@ cli.addCommand(.{
 try cli.parse(args, null);
 
 // In your action function, access both global and command options
-fn greet(arg: CommandContext) !void {
-    const verbose = arg.options.get("verbose");
-    const name = arg.options.get("name");
+fn greet(ctx: CommandContext) !void {
+    const verbose = ctx.options.get("verbose");
+    const name = ctx.options.get("name");
 
     if (verbose) |v| if (v.bool) {
         std.debug.print("Verbose mode enabled.\n", .{});
@@ -183,10 +183,10 @@ _ = cli.command("status", "Show status")
     .finalize();
 
 // Parse with factory commands
-try cli.parse(args, &.{ greet_cmd, calc_cmd });
+try cli.parse(argv, &.{ greet_cmd, calc_cmd });
 
-fn greet(arg: CommandContext) !void {
-    const name = arg.options.get("name");
+fn greet(ctx: CommandContext) !void {
+    const name = ctx.options.get("name");
     std.debug.print("Greeting someone.\n", .{});
 
     if (name) |n| {
@@ -194,9 +194,9 @@ fn greet(arg: CommandContext) !void {
     }
 }
 
-fn calc(arg: CommandContext) !void {
-    const a_opt = arg.options.get("a");
-    const b_opt = arg.options.get("b");
+fn calc(ctx: CommandContext) !void {
+    const a_opt = ctx.options.get("a");
+    const b_opt = ctx.options.get("b");
 
     if (a_opt) |a| if (b_opt) |b| {
         const sum = a.number + b.number;
@@ -204,8 +204,8 @@ fn calc(arg: CommandContext) !void {
     }
 }
 
-fn status(arg: CommandContext) !void {
-    _ = arg;
+fn status(ctx: CommandContext) !void {
+    _ = ctx;
     std.debug.print("System status: All good!\n", .{});
 }
 ```
