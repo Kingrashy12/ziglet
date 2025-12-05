@@ -40,7 +40,7 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(factory_example);
 
     plain_example.root_module.addImport("ziglet", root);
-    b.installArtifact(factory_example);
+    b.installArtifact(plain_example);
 
     const lib = b.addLibrary(.{
         .root_module = root,

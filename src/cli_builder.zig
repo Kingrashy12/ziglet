@@ -242,7 +242,9 @@ fn showCommandHelp(self: *Self, command_name: []const u8) void {
         print("\n {s}\n", .{cmd.description});
 
         if (cmd.options) |options| {
-            printColored(.bold, "\nOptions:\n", .{});
+            if (options.len > 0) {
+                printColored(.bold, "\nOptions:\n", .{});
+            }
 
             for (options) |_option| {
                 const flags = if (_option.alias) |_| std.fmt.allocPrint(self.allocator, "-{s}, --{s}", .{ _option.alias.?, _option.name }) catch unreachable else std.fmt.allocPrint(self.allocator, "--{s}", .{_option.name}) catch unreachable;
@@ -281,7 +283,7 @@ fn showGlobalOptions(self: *Self) void {
 
             const required = if (_option.required) " (required)" else "";
 
-            var value: types.Value = undefined;
+            var value: types.Value = .undefined;
 
             if (_option.default) |_| switch (_option.default.?) {
                 .string => |str| value = .{ .string = str },
