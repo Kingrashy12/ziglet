@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-12-05
+
+### Added
+
+- New **formatting utility function** in `utils/format.zig` to extend available text rendering capabilities.
+
+### Fixed
+
+- **Linux Stability Fix:** Correctly initialize the `value` variable as `.undefined` in `cli-builder.zig` to prevent a runtime error ("calling switch on corrupt data") on certain Linux systems when the variable was left uninitialized.
+
+### Changed
+
+- Improved CLI help output by conditionally rendering the "**Options:**" heading. The heading is now only displayed when the command actually has options defined, leading to cleaner help messages.
+
 ## [0.4.0] - 2025-12-01
 
 ### Changed
