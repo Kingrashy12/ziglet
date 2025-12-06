@@ -7,20 +7,22 @@ const std = @import("std");
 /// Returns: A string slice representing the formatted byte count.
 ///
 /// Errors: Returns an error if memory allocation for the formatted string fails.
-pub fn formatBytes(bytes: u64) ![]const u8 {
+///
+/// Caller must free the returned string.
+pub fn formatBytes(allocator: std.mem.Allocator, bytes: usize) ![]const u8 {
     var buffer: [500]u8 = undefined;
 
     if (bytes < 1024) {
-        return try std.fmt.bufPrint(buffer[0..], "{} B", .{bytes});
+        return try allocator.dupe(u8, try std.fmt.bufPrint(buffer[0..], "{} B", .{bytes}));
     } else if (bytes < 1024 * 1024) {
         const kb: f64 = @floatFromInt(bytes);
-        return try std.fmt.bufPrint(buffer[0..], "{d:.2} KB", .{kb / 1024});
+        return try allocator.dupe(u8, try std.fmt.bufPrint(buffer[0..], "{d:.2} KB", .{kb / 1024}));
     } else if (bytes < 1024 * 1024 * 1024) {
         const mb: f64 = @floatFromInt(bytes);
-        return try std.fmt.bufPrint(buffer[0..], "{d:.2} MB", .{mb / (1024 * 1024)});
+        return try allocator.dupe(u8, try std.fmt.bufPrint(buffer[0..], "{d:.2} MB", .{mb / (1024 * 1024)}));
     } else {
         const gb: f64 = @floatFromInt(bytes);
-        return try std.fmt.bufPrint(buffer[0..], "{d:.2} GB", .{gb / (1024 * 1024 * 1024)});
+        return try allocator.dupe(u8, try std.fmt.bufPrint(buffer[0..], "{d:.2} GB", .{gb / (1024 * 1024 * 1024)}));
     }
 }
 
