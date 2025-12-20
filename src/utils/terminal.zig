@@ -212,3 +212,20 @@ pub fn readLine(allocator: std.mem.Allocator, comptime max_size: usize, to_lower
 
     return try filtered_list.toOwnedSlice(allocator);
 }
+
+pub fn stripAnsi(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
+    var out: std.ArrayList(u8) = .empty;
+    var i: usize = 0;
+
+    while (i < input.len) {
+        if (input[i] == 0x1b and i + 1 < input.len and input[i + 1] == '[') {
+            i += 2;
+            while (i < input.len and input[i] != 'm') i += 1;
+            i += 1;
+        } else {
+            try out.append(allocator, input[i]);
+            i += 1;
+        }
+    }
+    return out.toOwnedSlice(allocator);
+}
