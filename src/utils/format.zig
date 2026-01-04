@@ -40,40 +40,54 @@ pub fn convertNanosecondsToTime(nanoseconds: u64) struct { milliseconds: f64, se
     return .{ .milliseconds = milliseconds, .seconds = seconds, .minutes = minutes, .hours = hours };
 }
 
-pub fn formatNumber(allocator: std.mem.Allocator, n: usize) ![]const u8 {
+pub fn formatNumber(allocator: std.mem.Allocator, n: usize, precision: usize) ![]const u8 {
+    const float_n = @as(f64, @floatFromInt(n));
+
     if (n >= 1_000_000_000) {
-        const value = n / 1_000_000_000;
-        const rem = (n % 1_000_000_000) / 100_000_000; // get 1 decimal
-        return try std.fmt.allocPrint(allocator, "{d}.{d}B", .{ value, rem });
+        return try std.fmt.allocPrint(allocator, "{d:.[1]}B", .{ float_n / 1e9, precision });
     } else if (n >= 1_000_000) {
-        const value = n / 1_000_000;
-        const rem = (n % 1_000_000) / 100_000; // 1 decimal
-        return try std.fmt.allocPrint(allocator, "{d}.{d}M", .{ value, rem });
+        return try std.fmt.allocPrint(allocator, "{d:.[1]}M", .{ float_n / 1e6, precision });
     } else if (n >= 1_000) {
-        const value = n / 1_000;
-        const rem = (n % 1_000) / 100; // 1 decimal
-        return try std.fmt.allocPrint(allocator, "{d}.{d}K", .{ value, rem });
+        return try std.fmt.allocPrint(allocator, "{d:.[1]}K", .{ float_n / 1e3, precision });
     } else {
-        return try std.fmt.allocPrint(allocator, "{}", .{n});
+        return try std.fmt.allocPrint(allocator, "{d}", .{n});
     }
 }
 
-test "format bytes" {
-    try std.testing.expectEqualStrings("188 B", try formatBytes(188));
-    try std.testing.expectEqualStrings("1.84 KB", try formatBytes(1887));
-    try std.testing.expectEqualStrings("1.03 MB", try formatBytes(1050 * 1024));
-    try std.testing.expectEqualStrings("1.03 GB", try formatBytes(1050 * 1024 * 1024));
-
+test "format number" {
     const allocator = std.testing.allocator;
 
-    const one_k = try formatNumber(allocator, 1100);
+    const one_k = try formatNumber(allocator, 1100, 1);
     defer allocator.free(one_k);
-    const one_million = try formatNumber(allocator, 1100000);
-    defer allocator.free(one_million);
-    const one_billion = try formatNumber(allocator, 1100000000);
-    defer allocator.free(one_billion);
-
     try std.testing.expectEqualStrings("1.1K", one_k);
+
+    const one_million = try formatNumber(allocator, 1100000, 1);
+    defer allocator.free(one_million);
     try std.testing.expectEqualStrings("1.1M", one_million);
+
+    const one_billion = try formatNumber(allocator, 1100000000, 1);
+    defer allocator.free(one_billion);
     try std.testing.expectEqualStrings("1.1B", one_billion);
+
+    const one_million_1 = try formatNumber(allocator, 1100000, 0);
+    defer allocator.free(one_million_1);
+    try std.testing.expectEqualStrings("1M", one_million_1);
+}
+
+test "format bytes" {
+    const allocator = std.testing.allocator;
+
+    const result_188 = try formatBytes(allocator, 188);
+    defer allocator.free(result_188);
+    const result_1887 = try formatBytes(allocator, 1887);
+    defer allocator.free(result_1887);
+    const result_mb = try formatBytes(allocator, 1050 * 1024);
+    defer allocator.free(result_mb);
+    const result_gb = try formatBytes(allocator, 1050 * 1024 * 1024);
+    defer allocator.free(result_gb);
+
+    try std.testing.expectEqualStrings("188 B", result_188);
+    try std.testing.expectEqualStrings("1.84 KB", result_1887);
+    try std.testing.expectEqualStrings("1.03 MB", result_mb);
+    try std.testing.expectEqualStrings("1.03 GB", result_gb);
 }
