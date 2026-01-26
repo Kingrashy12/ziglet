@@ -187,7 +187,7 @@ try cli.parse(argv, &.{ greet_cmd, calc_cmd });
 
 fn greet(ctx: CommandContext) !void {
     const name = ctx.options.get("name");
-    std.debug.print("Greeting someone.\n", .{});
+    std.debug.print("Greeting someone from '{s}'.\n", .{ctx.name});
 
     if (name) |n| {
         std.debug.print("Hello, {s}!\n", .{n.string});
