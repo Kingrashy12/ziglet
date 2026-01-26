@@ -54,19 +54,19 @@ pub fn main() !void {
     try cli.parse(args, &.{ greet_cmd, calc_cmd });
 }
 
-fn greet(arg: CommandContext) !void {
-    const name = arg.options.get("name");
+fn greet(ctx: CommandContext) !void {
+    const name = ctx.options.get("name");
 
-    std.debug.print("Greeting someone.\n", .{});
+    std.debug.print("Greeting someone from '{s}'.\n", .{ctx.name});
 
     if (name) |n| {
         std.debug.print("Hello, {s}!\n", .{n.string});
     }
 }
 
-fn calc(arg: CommandContext) !void {
-    const a_opt = arg.options.get("a");
-    const b_opt = arg.options.get("b");
+fn calc(ctx: CommandContext) !void {
+    const a_opt = ctx.options.get("a");
+    const b_opt = ctx.options.get("b");
 
     std.debug.print("Calculating sum.\n", .{});
 
@@ -76,7 +76,7 @@ fn calc(arg: CommandContext) !void {
     };
 }
 
-fn status(arg: CommandContext) !void {
-    _ = arg;
+fn status(ctx: CommandContext) !void {
+    _ = ctx;
     std.debug.print("System status: All good!\n", .{});
 }

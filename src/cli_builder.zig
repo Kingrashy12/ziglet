@@ -177,6 +177,8 @@ pub fn parse(self: *Self, argv: [][:0]u8, builder_commands: ?[]const *CommandBui
     const validated_parsed = try parser.validateOptions(command_parsed, merged_options);
 
     try found_command.action(.{
+        .name = self.name,
+        .version = self.version,
         .args = validated_parsed.args,
         .options = validated_parsed.options,
         .allocator = self.allocator,

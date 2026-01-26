@@ -28,7 +28,29 @@ pub const CLIOption = struct {
     choices: ?[][]const u8 = null,
 };
 
-pub const CommandContext = struct { args: [][]u8, options: std.StringHashMap(Value), allocator: std.mem.Allocator };
+/// #### Context that is passed to each command action.
+///
+/// `name`: The name of the CLI application.
+///
+/// `version`: The version of the CLI application.
+///
+/// `args`: The arguments passed to the command from the command line. For example, if the command line was "install pk1 pk2", `args` would be `["pk1", "pk2"]`.
+///
+/// `options`: The options parsed from the command line.
+///
+/// `allocator`: The allocator to use for memory management.
+pub const CommandContext = struct {
+    /// The name of the CLI application.
+    name: []const u8,
+    /// The version of the CLI application.
+    version: []const u8,
+    /// The arguments passed to the command from the command line. For example, if the command line was "install pk1 pk2", `args` would be `["pk1", "pk2"]`.
+    args: [][]u8,
+    /// The options parsed from the command line.
+    options: std.StringHashMap(Value),
+    /// The allocator to use for memory management.
+    allocator: std.mem.Allocator,
+};
 
 pub const CLICommand = struct {
     name: []const u8,

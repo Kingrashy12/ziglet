@@ -80,9 +80,9 @@ pub fn main() !void {
     try cli.parse(args, null);
 }
 
-fn greet(arg: CommandContext) !void {
-    const name = arg.options.get("name");
-    const verbose = arg.options.get("verbose");
+fn greet(ctx: CommandContext) !void {
+    const name = ctx.options.get("name");
+    const verbose = ctx.options.get("verbose");
 
     if (verbose) |v| if (v.bool) {
         std.debug.print("Verbose mode enabled.\n", .{});
@@ -93,10 +93,10 @@ fn greet(arg: CommandContext) !void {
     }
 }
 
-fn calc(arg: CommandContext) !void {
-    const a_opt = arg.options.get("a");
-    const b_opt = arg.options.get("b");
-    const verbose = arg.options.get("verbose");
+fn calc(ctx: CommandContext) !void {
+    const a_opt = ctx.options.get("a");
+    const b_opt = ctx.options.get("b");
+    const verbose = ctx.options.get("verbose");
 
     if (verbose) |v| if (v.bool) {
         std.debug.print("Verbose mode enabled.\n", .{});
@@ -108,19 +108,19 @@ fn calc(arg: CommandContext) !void {
     };
 }
 
-fn install(arg: CommandContext) !void {
+fn install(ctx: CommandContext) !void {
     std.debug.print("Running 'install' action.\n", .{});
 
-    if (arg.options.get("dev")) |_| {
+    if (ctx.options.get("dev")) |_| {
         std.debug.print("Saving as dev package.\n", .{});
     }
 
-    if (arg.args.len == 0) {
+    if (ctx.args.len == 0) {
         //error
     }
 
-    if (arg.args.len > 0) {
-        for (arg.args) |value| {
+    if (ctx.args.len > 0) {
+        for (ctx.args) |value| {
             std.debug.print("package: {s}.\n", .{value});
         }
     }

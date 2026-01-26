@@ -256,6 +256,7 @@ fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Va
     }
 }
 
+// TODO: This is irrelevant and should be removed
 // pub fn validateArgs(parsed: ParsedArgs, args: []CLIArgument) void {
 //     var argIndex: usize = 0;
 
@@ -279,6 +280,7 @@ fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Va
 
 pub fn validateOptions(self: *Self, parsed: ParsedArgs, options: []CLIOption) !ParsedArgs {
     var missing_options: std.ArrayList(CLIOption) = .empty;
+    errdefer missing_options.deinit(self.allocator);
 
     // First collect all missing required options
     for (options) |option| {
@@ -289,8 +291,8 @@ pub fn validateOptions(self: *Self, parsed: ParsedArgs, options: []CLIOption) !P
 
     if (missing_options.items.len > 0) {
         const alias = if (missing_options.items[0].alias) |a| a else "";
-        terminal.printColored(.red, "Missing required option: --{s} (-{s})", .{ missing_options.items[0].name, alias });
-        std.process.exit(1);
+        terminal.printColored(.red, "Missing required option: --{s} (-{s})\n", .{ missing_options.items[0].name, alias });
+        return error.MissingRequiredOption;
     }
 
     defer missing_options.deinit(self.allocator);
