@@ -50,6 +50,8 @@ pub const CommandContext = struct {
     options: std.StringHashMap(Value),
     /// The allocator to use for memory management.
     allocator: std.mem.Allocator,
+    /// The command that was executed.
+    command: []const u8,
 };
 
 pub const CLICommand = struct {

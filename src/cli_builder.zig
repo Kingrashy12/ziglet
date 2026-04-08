@@ -182,6 +182,7 @@ pub fn parse(self: *Self, argv: [][:0]u8, builder_commands: ?[]const *CommandBui
         .args = validated_parsed.args,
         .options = validated_parsed.options,
         .allocator = self.allocator,
+        .command = command_name,
     });
 }
 
