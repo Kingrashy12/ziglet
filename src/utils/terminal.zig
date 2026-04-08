@@ -86,6 +86,18 @@ pub fn clearConsole() void {
     print("\x1B[2J\x1B[3J\x1B[H", .{});
 }
 
+pub fn hideCursor() void {
+    print("\x1b[?25l", .{});
+}
+
+pub fn showCursor() void {
+    print("\x1b[?25h", .{});
+}
+
+pub fn clearLine() void {
+    print("\x1b[2K\r", .{});
+}
+
 /// Set console to UTF-8 on Windows
 pub fn setWinConsole() void {
     // Define CP_UTF8 constant for Windows
@@ -108,7 +120,7 @@ pub fn setWinConsole() void {
 /// Caller owns the returned memory
 pub fn readInput(allocator: std.mem.Allocator, prompt: ?[]const u8) ![]const u8 {
     if (prompt) |p| {
-        std.debug.print("{s}: ", .{p});
+        std.debug.print("{s}", .{p});
     }
 
     const slice = try readLine(allocator, 100, false);
@@ -124,7 +136,7 @@ pub fn readInput(allocator: std.mem.Allocator, prompt: ?[]const u8) ![]const u8 
 /// Returns the input as an unsigned 8-bit integer (`u8`)
 pub fn readInputNum(allocator: Allocator, prompt: ?[]const u8) !u8 {
     if (prompt) |p| {
-        std.debug.print("{s}: ", .{p});
+        std.debug.print("{s}", .{p});
     }
 
     const slice = try readLine(allocator, 10, false);
