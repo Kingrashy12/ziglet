@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### [0.9.0] - 2026-04-04
+
+Modularize color handling and update print API
+
+Extract the `Color` enum into a dedicated `color.zig` module and
+update `printColored` to support multiple styles via a slice of
+`Color.Style`. This refactor also includes cleaning up error logging
+in the terminal utility and centralizing color logic.
+
+- move `Color` enum to `src/utils/color.zig`
+- update `printColored` signature to accept `[]const Color.Style`
+- refactor `cli_builder.zig` and `parser.zig` to use new style slice API
+- implement `printOption` in `cli_builder.zig` to reduce duplication
+
 ### [0.8.0] - 2026-01-26
 
 ### Changed

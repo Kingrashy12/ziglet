@@ -1,46 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-
-/// Represents terminal color options for text formatting.
-pub const Color = enum {
-    reset,
-    red,
-    red_bright,
-    green,
-    green_bright,
-    yellow,
-    yellow_bright,
-    cyan,
-    white,
-    blue,
-    blue_bright,
-    bold,
-    magenta,
-    black,
-    red_bg,
-    gray,
-
-    pub fn ansiCode(self: Color) []const u8 {
-        return switch (self) {
-            .reset => "\x1b[0m",
-            .black => "\x1b[30m",
-            .red => "\x1b[31m",
-            .red_bright => "\x1b[91m",
-            .green => "\x1b[32m",
-            .green_bright => "\x1b[92m",
-            .yellow => "\x1b[33m",
-            .yellow_bright => "\x1b[93m",
-            .blue => "\x1b[34m",
-            .blue_bright => "\x1b[94m",
-            .magenta => "\x1b[35m",
-            .cyan => "\x1b[36m",
-            .white => "\x1b[37m",
-            .bold => "\x1b[1m",
-            .red_bg => "\x1b[41;97m",
-            .gray => "\x1b[90m",
-        };
-    }
-};
+pub const Color = @import("color.zig");
 
 pub fn print(comptime fmt: []const u8, args: anytype) void {
     var buffer: [1024]u8 = undefined;
@@ -48,38 +8,33 @@ pub fn print(comptime fmt: []const u8, args: anytype) void {
     var stdout = &stdout_writer.interface;
 
     stdout.print(fmt, args) catch |err| {
-        std.log.err("{s}Failed to write to stdout: {s}{s}\n", .{ Color.ansiCode(.red), @errorName(err), Color.ansiCode(.reset) });
+        std.log.err("Failed to write to stdout: {s}\n", .{@errorName(err)});
     };
 
     defer stdout.flush() catch |err| {
-        std.log.err("{s}Failed to flush: {s}{s}\n", .{ Color.ansiCode(.red), @errorName(err), Color.ansiCode(.reset) });
+        std.log.err("Failed to flush: {s}\n", .{@errorName(err)});
     };
 }
 
-/// Caller owns the returned memory
-pub fn colored(allocator: Allocator, text: []const u8, color: Color) []const u8 {
-    const result = std.fmt.allocPrint(allocator, "{s}{s}{s}", .{ color.ansiCode(), text, Color.reset.ansiCode() }) catch unreachable;
+/// Prints colored text to the terminal
+/// - `styles`: Array of color styles to apply
+/// - `fmt`: Format string
+/// - `args`: Arguments for the format string
+///
+/// ### Example
+/// ```zig
+/// printColored(&[_]Color.Style{.red, .bold}, "Hello, {s}!", .{"World"});
+/// ```
+pub fn printColored(styles: []const Color.Style, comptime fmt: []const u8, args: anytype) void {
+    const allocator = std.heap.page_allocator;
 
-    return result;
-}
+    const text = std.fmt.allocPrint(allocator, fmt, args) catch fmt;
+    defer allocator.free(text);
 
-/// Caller owns the returned memory
-pub fn coloredWithArgs(allocator: Allocator, comptime fmt: []const u8, args: anytype, color: Color) []const u8 {
-    const result = std.fmt.allocPrint(allocator, "{s}" ++ fmt ++ "{s}", .{color.ansiCode()} ++ args ++ .{Color.reset.ansiCode()}) catch unreachable;
+    var r = Color.colored(allocator, text, styles) catch unreachable;
+    defer r.instance.deinit();
 
-    return result;
-}
-
-pub fn printColored(color: Color, comptime fmt: []const u8, args: anytype) void {
-    print("{s}" ++ fmt ++ "{s}", .{color.ansiCode()} ++ args ++ .{Color.reset.ansiCode()});
-}
-
-pub fn printColoredInfo(color: Color, comptime fmt: []const u8, args: anytype) void {
-    std.log.info("{s}" ++ fmt ++ "{s}", .{color.ansiCode()} ++ args ++ .{Color.reset.ansiCode()});
-}
-
-pub fn printError(comptime fmt: []const u8, args: anytype) void {
-    std.log.err("{s}" ++ fmt ++ "{s}", .{Color.red.ansiCode()} ++ args ++ .{Color.reset.ansiCode()});
+    print("{s}", .{r.result});
 }
 
 pub fn clearConsole() void {
