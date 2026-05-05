@@ -59,7 +59,7 @@ pub fn main(init: std.process.Init) !void {
         }}),
     });
 
-    try cli.parse(argv, null);
+    try cli.parse(args, null);
 }
 
 fn greet(ctx: CommandContext) !void {
@@ -179,7 +179,7 @@ _ = cli.command("status", "Show status")
     .finalize();
 
 // Parse with factory commands
-try cli.parse(argv, &.{ greet_cmd, calc_cmd });
+try cli.parse(args, &.{ greet_cmd, calc_cmd });
 
 fn greet(ctx: CommandContext) !void {
     const name = ctx.options.get("name");
