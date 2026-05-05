@@ -16,16 +16,6 @@ pub fn print(io: std.Io, comptime fmt: []const u8, args: anytype) void {
     defer writer_interface.flush() catch |err| {
         std.log.err("Failed to flush: {s}\n", .{@errorName(err)});
     };
-    // var stdout_writer = std.Io.File.stdout().writer(&buffer);
-    // var stdout = &stdout_writer.interface;
-
-    // stdout.print(fmt, args) catch |err| {
-    //     std.log.err("Failed to write to stdout: {s}\n", .{@errorName(err)});
-    // };
-
-    // defer stdout.flush() catch |err| {
-    //     std.log.err("Failed to flush: {s}\n", .{@errorName(err)});
-    // };
 }
 
 /// Prints colored text to the terminal
@@ -40,7 +30,7 @@ pub fn print(io: std.Io, comptime fmt: []const u8, args: anytype) void {
 pub fn printColored(io: std.Io, styles: []const Color.Style, comptime fmt: []const u8, args: anytype) void {
     const allocator = std.heap.page_allocator;
 
-    const text = std.fmt.allocPrint(allocator, fmt, args) catch fmt;
+    const text = try std.fmt.allocPrint(allocator, fmt, args);
     defer allocator.free(text);
 
     var r = Color.colored(allocator, text, styles) catch unreachable;

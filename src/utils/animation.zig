@@ -33,7 +33,7 @@ pub const Animation = struct {
             switch (self.status.load(.seq_cst)) {
                 @intFromEnum(Status.loading) => {
                     std.debug.print("\r{c} {s}...", .{ spinner_chars[i % spinner_chars.len], message });
-                    std.time.sleep(100 * 1000000);
+                    std.Io.sleep(self.io, .fromMilliseconds(100), .awake) catch unreachable;
                     i += 1;
                 },
                 @intFromEnum(Status.success) => {
@@ -50,11 +50,11 @@ pub const Animation = struct {
 
         switch (self.status.load(.seq_cst)) {
             @intFromEnum(Status.success) => {
-                printColored(self.io, .green, "\r{s} {s}\n", .{ success_icon, self.status_buffer });
+                printColored(self.io, &.{.green}, "\r{s} {s}\n", .{ success_icon, self.status_buffer });
                 return;
             },
             @intFromEnum(Status.failed) => {
-                printColored(self.io, .green, "\r{s} {s}\n", .{ error_icon, self.status_buffer });
+                printColored(self.io, &.{.red}, "\r{s} {s}\n", .{ error_icon, self.status_buffer });
                 return;
             },
             else => unreachable,
@@ -72,20 +72,20 @@ pub const Animation = struct {
     }
 };
 
-pub fn write(text: []const u8, delay: u64) void {
+pub fn write(text: []const u8, delay: i64, io: std.Io) void {
     var i: usize = 0;
 
     while (i < text.len) {
-        terminal.print("\r{s}", .{text[0 .. i + 1]});
+        terminal.print(io, "\r{s}", .{text[0 .. i + 1]});
 
         i += 1;
 
-        std.time.sleep(delay * std.time.ns_per_ms);
+        std.Io.sleep(io, .fromMilliseconds(delay), .awake) catch unreachable;
     }
-    terminal.print("\n", .{});
+    terminal.print(io, "\n", .{});
 }
 
-pub fn progressBar(delay: u64, message: []const u8) void {
+pub fn progressBar(delay: i64, message: []const u8, io: std.Io) void {
     var i: u8 = 0;
 
     while (i < 101) {
@@ -95,11 +95,11 @@ pub fn progressBar(delay: u64, message: []const u8) void {
             bar[j] = '=';
         }
 
-        terminal.print("\r{s}: {d}% [{s}]", .{ message, i, bar });
+        terminal.print(io, "\r{s}: {d}% [{s}]", .{ message, i, bar });
 
         i += 1;
 
-        std.time.sleep(delay * std.time.ns_per_ms);
+        std.Io.sleep(io, .fromMilliseconds(delay), .awake) catch unreachable;
     }
-    terminal.print("\n", .{});
+    terminal.print(io, "\n", .{});
 }
