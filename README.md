@@ -37,16 +37,12 @@ const ziglet = @import("ziglet");
 const CommandContext = ziglet.BuilderTypes.CommandContext;
 const CLIBuilder = ziglet.CLIBuilder;
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
-    defer _ = gpa.deinit();
+pub fn main(init: std.process.Init) !void {
+    const arena = init.arena;
+    const allocator = init.gpa;
+    const args = try init.minimal.args.toSlice(arena.allocator());
 
-    const allocator = gpa.allocator();
-
-    const argv = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, argv);
-
-    var cli = CLIBuilder.init(allocator, "my-cli", "0.1.0", "A simple CLI example");
+    var cli = CLIBuilder.init(allocator, init, "my-cli", "0.1.0", "A simple CLI example");
     defer cli.deinit();
 
     // Add a command with options
@@ -82,7 +78,7 @@ Ziglet supports global options that apply to all commands:
 ```zig
 // ... (same setup as above)
 
-var cli = CLIBuilder.init(allocator, "example-cli", "1.0.0", "A CLI with global options");
+var cli = CLIBuilder.init(allocator, init, "example-cli", "1.0.0", "A CLI with global options");
 defer cli.deinit();
 
 // Enable global options (adds --help and --version automatically)
@@ -134,7 +130,7 @@ For a more fluent and readable way to build commands:
 ```zig
 // ... (same setup as above)
 
-var cli = CLIBuilder.init(allocator, "my-cli", "0.1.0", "Factory builder example");
+var cli = CLIBuilder.init(allocator, init,"my-cli", "0.1.0", "Factory builder example");
 defer cli.deinit();
 
 cli.setGlobalOptions();

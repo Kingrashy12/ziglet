@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### [0.10.0] - 2025-10-22
+
+Fix Windows console encoding and improve error handling
+
+- Fix Windows console encoding by using `SetConsoleOutputCP` instead of `SetConsoleCP`
+- Update `setWinConsole` function to use `callconv(.winapi)` instead of `callconv(.WinApi)`
+- Migrate to zig `0.16.0`
+- Bump version to 0.10.0 and minimum Zig version to 0.16.0
+- Refactor `CLIBuilder` and `CommandContext` to hold `std.process.Init`
+- Update `Parser`, `Animation`, and `Terminal` utilities to use `std.Io`
+- Update `CommandContext` to include `arg_count` and `init`
+- Update `examples/plain.zig` and `examples/factory.zig` to reflect API changes
+
 ### [0.9.0] - 2026-04-04
 
 Modularize color handling and update print API

@@ -46,12 +46,16 @@ pub const CommandContext = struct {
     version: []const u8,
     /// The arguments passed to the command from the command line. For example, if the command line was "install pk1 pk2", `args` would be `["pk1", "pk2"]`.
     args: [][]u8,
+    /// The number of arguments passed to the command.
+    arg_count: usize,
     /// The options parsed from the command line.
     options: std.StringHashMap(Value),
     /// The allocator to use for memory management.
     allocator: std.mem.Allocator,
     /// The command that was executed.
     command: []const u8,
+    /// The init object from the main function.
+    init: std.process.Init,
 };
 
 pub const CLICommand = struct {
@@ -84,7 +88,7 @@ pub const CLIBuilder = struct {
     command: fn (name: []const u8, description: []const u8) CommandBuilder,
     option: fn (name: []const u8, description: []const u8, config: ?CLIOption) CLIBuilder,
     action: fn (handler: fn (args: anytype, options: anytype) void) CLIBuilder,
-    parse: fn (argv: [][:0]u8) void,
+    parse: fn (argv: []const [:0]const u8) void,
     showHelp: fn () void,
     addCommand: fn (command: CLICommand) void,
     setInteractive: fn (interactive: bool) CLIBuilder,

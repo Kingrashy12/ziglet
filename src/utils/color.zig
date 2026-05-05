@@ -356,6 +356,7 @@ pub const Style = enum {
     reverse,
     hidden,
     strikethrough,
+    reset,
     // Backgrounds
     bg_black,
     bg_red,
@@ -490,6 +491,11 @@ pub const Style = enum {
             .strikethrough => struct {
                 fn apply(c: *Self) *Self {
                     return c.strikethrough();
+                }
+            }.apply,
+             .reset => struct {
+                fn apply(c: *Self) *Self {
+                    return c.reset();
                 }
             }.apply,
             .bg_black => struct {

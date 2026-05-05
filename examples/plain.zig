@@ -3,17 +3,14 @@ const ziglet = @import("ziglet");
 const CommandContext = ziglet.BuilderTypes.CommandContext;
 const CLIOption = ziglet.CLIOption;
 const CLIBuilder = ziglet.CLIBuilder;
+const Io = std.Io;
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
-    defer _ = gpa.deinit();
+pub fn main(init: std.process.Init) !void {
+    const arena = init.arena;
+    const allocator = init.gpa;
+    const args = try init.minimal.args.toSlice(arena.allocator());
 
-    const allocator = gpa.allocator();
-
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
-
-    var cli = CLIBuilder.init(allocator, "example-cli", "1.0.0", "A simple example CLI using CLIBuilder.");
+    var cli = CLIBuilder.init(allocator, init, "example-cli", "1.0.0", "A simple example CLI using CLIBuilder.");
     defer cli.deinit();
 
     cli.setGlobalOptions();

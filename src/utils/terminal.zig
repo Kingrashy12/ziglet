@@ -2,18 +2,30 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 pub const Color = @import("color.zig");
 
-pub fn print(comptime fmt: []const u8, args: anytype) void {
+pub fn print(io: std.Io, comptime fmt: []const u8, args: anytype) void {
     var buffer: [1024]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&buffer);
-    var stdout = &stdout_writer.interface;
 
-    stdout.print(fmt, args) catch |err| {
+    var stdout = std.Io.File.stdout();
+    var writer = stdout.writer(io, &buffer);
+    var writer_interface = &writer.interface;
+
+    writer_interface.print(fmt, args) catch |err| {
         std.log.err("Failed to write to stdout: {s}\n", .{@errorName(err)});
     };
 
-    defer stdout.flush() catch |err| {
+    defer writer_interface.flush() catch |err| {
         std.log.err("Failed to flush: {s}\n", .{@errorName(err)});
     };
+    // var stdout_writer = std.Io.File.stdout().writer(&buffer);
+    // var stdout = &stdout_writer.interface;
+
+    // stdout.print(fmt, args) catch |err| {
+    //     std.log.err("Failed to write to stdout: {s}\n", .{@errorName(err)});
+    // };
+
+    // defer stdout.flush() catch |err| {
+    //     std.log.err("Failed to flush: {s}\n", .{@errorName(err)});
+    // };
 }
 
 /// Prints colored text to the terminal
@@ -25,7 +37,7 @@ pub fn print(comptime fmt: []const u8, args: anytype) void {
 /// ```zig
 /// printColored(&[_]Color.Style{.red, .bold}, "Hello, {s}!", .{"World"});
 /// ```
-pub fn printColored(styles: []const Color.Style, comptime fmt: []const u8, args: anytype) void {
+pub fn printColored(io: std.Io, styles: []const Color.Style, comptime fmt: []const u8, args: anytype) void {
     const allocator = std.heap.page_allocator;
 
     const text = std.fmt.allocPrint(allocator, fmt, args) catch fmt;
@@ -34,24 +46,29 @@ pub fn printColored(styles: []const Color.Style, comptime fmt: []const u8, args:
     var r = Color.colored(allocator, text, styles) catch unreachable;
     defer r.instance.deinit();
 
-    print("{s}", .{r.result});
+    print(io, "{s}", .{r.result});
 }
 
-pub fn clearConsole() void {
-    print("\x1B[2J\x1B[3J\x1B[H", .{});
+pub fn clearConsole(io: std.Io) void {
+    print(io, "\x1B[2J\x1B[3J\x1B[H", .{});
 }
 
-pub fn hideCursor() void {
-    print("\x1b[?25l", .{});
+pub fn hideCursor(io: std.Io) void {
+    print(io, "\x1b[?25l", .{});
 }
 
-pub fn showCursor() void {
-    print("\x1b[?25h", .{});
+pub fn showCursor(io: std.Io) void {
+    print(io, "\x1b[?25h", .{});
 }
 
-pub fn clearLine() void {
-    print("\x1b[2K\r", .{});
+pub fn clearLine(io: std.Io) void {
+    print(io, "\x1b[2K\r", .{});
 }
+
+// Declare the function that is missing from the std.os.windows.kernel32 bindings
+pub extern "kernel32" fn SetConsoleOutputCP(
+    wCodePageID: std.os.windows.UINT,
+) callconv(.winapi) std.os.windows.BOOL;
 
 /// Set console to UTF-8 on Windows
 pub fn setWinConsole() void {
@@ -60,8 +77,7 @@ pub fn setWinConsole() void {
 
     // Set console to UTF-8 on Windows
     if (@import("builtin").os.tag == .windows) {
-        const windows = std.os.windows;
-        _ = windows.kernel32.SetConsoleOutputCP(CP_UTF8);
+        _ = SetConsoleOutputCP(CP_UTF8);
     }
 }
 
@@ -160,7 +176,7 @@ pub fn confirm(allocator: Allocator, message: []const u8) !bool {
 /// Caller owns the returned memory
 pub fn readLine(allocator: std.mem.Allocator, comptime max_size: usize, to_lower: bool) ![]const u8 {
     var stdin_buffer: [max_size]u8 = undefined;
-    var stdin_reader = std.fs.File.stdin().reader(&stdin_buffer);
+    var stdin_reader = std.Io.File.stdin().reader(&stdin_buffer);
     const stdin = &stdin_reader.interface;
 
     const line = try stdin.takeDelimiterExclusive('\n');

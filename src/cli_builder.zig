@@ -27,6 +27,8 @@ description: []const u8,
 // TODO: This is irrelevant and should be removed
 /// Whether the CLI should run in interactive mode.
 interactive: bool = false,
+/// The init object from the main function.
+main_init: std.process.Init,
 
 /// Initializes a new CLIBuilder instance.
 ///
@@ -37,7 +39,7 @@ interactive: bool = false,
 /// - description: A description of the CLI application.
 ///
 /// Returns: A new CLIBuilder instance.
-pub fn init(allocator: Allocator, name: []const u8, version: []const u8, description: []const u8) Self {
+pub fn init(allocator: Allocator, main_init: std.process.Init, name: []const u8, version: []const u8, description: []const u8) Self {
     const self = Self{
         .allocator = allocator,
         .name = name,
@@ -46,6 +48,7 @@ pub fn init(allocator: Allocator, name: []const u8, version: []const u8, descrip
         .interactive = false,
         .commands = std.StringHashMap(CLICommand).init(allocator),
         .globalOptions = .empty,
+        .main_init = main_init,
     };
 
     return self;
@@ -121,8 +124,12 @@ pub fn setInteractive(self: *Self, interactive: bool) *Self {
     return @constCast(self);
 }
 
-pub fn parse(self: *Self, argv: [][:0]u8, builder_commands: ?[]const *CommandBuilder) !void {
-    var parser = Parser.init(self.allocator);
+/// Parse the command line arguments
+///
+/// - param **argv** - The command line arguments
+/// - param **builder_commands** - The builder commands
+pub fn parse(self: *Self, argv: []const [:0]const u8, builder_commands: ?[]const *CommandBuilder) !void {
+    var parser = Parser.init(self.allocator, self.main_init.io);
     defer parser.deinit();
 
     defer freeBuilderOptions(builder_commands);
@@ -140,7 +147,7 @@ pub fn parse(self: *Self, argv: [][:0]u8, builder_commands: ?[]const *CommandBui
     }
 
     if (parsed.options.get("version")) |_| {
-        printColored(&.{.white}, "v{s}", .{self.version});
+        printColored(self.main_init.io, &.{.white}, "v{s}", .{self.version});
         return;
     }
 
@@ -158,8 +165,8 @@ pub fn parse(self: *Self, argv: [][:0]u8, builder_commands: ?[]const *CommandBui
     if (command_) |cmd| {
         found_command = cmd;
     } else {
-        printColored(&.{.red}, "Unknown command: {s}\n", .{command_name});
-        printColored(&.{.yellow}, "\nAvailable commands: ", .{});
+        printColored(self.main_init.io, &.{.red}, "Unknown command: {s}\n", .{command_name});
+        printColored(self.main_init.io, &.{.yellow}, "\nAvailable commands: ", .{});
         self.listCommands();
         return;
     }
@@ -180,9 +187,11 @@ pub fn parse(self: *Self, argv: [][:0]u8, builder_commands: ?[]const *CommandBui
         .name = self.name,
         .version = self.version,
         .args = validated_parsed.args,
+        .arg_count = validated_parsed.args.len,
         .options = validated_parsed.options,
         .allocator = self.allocator,
         .command = command_name,
+        .init = self.main_init,
     });
 }
 
@@ -224,29 +233,29 @@ fn mergeOptions(self: *Self, command_options: ?[]const CLIOption) ![]CLIOption {
 }
 
 pub fn showHelp(self: *Self) void {
-    print("{s} \n\n", .{self.description});
-    printColored(&.{.bold}, "Usage:", .{});
-    print(" {s} <command> [options]\n\n", .{self.name});
+    print(self.main_init.io, "{s} \n\n", .{self.description});
+    printColored(self.main_init.io, &.{.bold}, "Usage:", .{});
+    print(self.main_init.io, " {s} <command> [options]\n\n", .{self.name});
 
     self.listCommands();
     self.showGlobalOptions();
 
-    terminal.print("\nRun \"{s} <command> --help\" for more information about a command.\n", .{self.name});
+    terminal.print(self.main_init.io, "\nRun \"{s} <command> --help\" for more information about a command.\n", .{self.name});
 }
 
 fn showCommandHelp(self: *Self, command_name: []const u8) void {
     if (self.commands.get(command_name)) |cmd| {
-        printColored(&.{.bold}, "Usage: ", .{});
+        printColored(self.main_init.io, &.{.bold}, "Usage: ", .{});
 
         if (cmd.options != null and cmd.options.?.len > 0) {
-            print("{s} {s} [options]\n", .{ self.name, cmd.name });
-        } else print("{s} {s}\n", .{ self.name, cmd.name });
+            print(self.main_init.io, "{s} {s} [options]\n", .{ self.name, cmd.name });
+        } else print(self.main_init.io, "{s} {s}\n", .{ self.name, cmd.name });
 
-        print("\n {s}\n", .{cmd.description});
+        print(self.main_init.io, "\n {s}\n", .{cmd.description});
 
         if (cmd.options) |options| {
             if (options.len > 0) {
-                printColored(&.{.bold}, "\nOptions:\n", .{});
+                printColored(self.main_init.io, &.{.bold}, "\nOptions:\n", .{});
             }
 
             for (options) |_option| {
@@ -257,28 +266,28 @@ fn showCommandHelp(self: *Self, command_name: []const u8) void {
             }
         }
     } else {
-        printColored(&.{.red}, "Unknown command: {s}\n", .{command_name});
-        printColored(&.{.yellow}, "\nAvailable commands: ", .{});
+        printColored(self.main_init.io, &.{.red}, "Unknown command: {s}\n", .{command_name});
+        printColored(self.main_init.io, &.{.yellow}, "\nAvailable commands: ", .{});
         self.listCommands();
     }
 }
 
 fn listCommands(self: *Self) void {
     if (self.commands.capacity() > 0) {
-        printColored(&.{.bold}, "Commands:\n", .{});
+        printColored(self.main_init.io, &.{.bold}, "Commands:\n", .{});
 
         var command_iterator = self.commands.iterator();
 
         while (command_iterator.next()) |entry| {
             const name = entry.key_ptr.*;
-            print("  {s:<26} {s}\n", .{ name, entry.value_ptr.description });
+            print(self.main_init.io, "  {s:<26} {s}\n", .{ name, entry.value_ptr.description });
         }
     }
 }
 
 fn showGlobalOptions(self: *Self) void {
     if (self.globalOptions.items.len > 0) {
-        printColored(&.{.bold}, "\nGlobal Options:\n", .{});
+        printColored(self.main_init.io, &.{.bold}, "\nGlobal Options:\n", .{});
 
         for (self.globalOptions.items) |_option| {
             const flags = if (_option.alias) |_| std.fmt.allocPrint(self.allocator, "-{s}, --{s}", .{ _option.alias.?, _option.name }) catch unreachable else std.fmt.allocPrint(self.allocator, "--{s}", .{_option.name}) catch unreachable;
@@ -313,5 +322,5 @@ fn printOption(self: *Self, opt: CLIOption, flags: []u8) void {
     var colored_required = color.colored(self.allocator, required, &.{.red}) catch unreachable;
     defer colored_required.deinit();
 
-    print("  {s:<26} {s} {s} {s}\n", .{ flags, opt.description, colored_required.result, default_value.result });
+    print(self.main_init.io, "  {s:<26} {s} {s} {s}\n", .{ flags, opt.description, colored_required.result, default_value.result });
 }

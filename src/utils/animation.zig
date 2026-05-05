@@ -9,11 +9,12 @@ pub const Animation = struct {
     stop_animation: *std.atomic.Value(bool),
     status: *std.atomic.Value(i32),
     status_buffer: []const u8,
+    io: std.Io,
 
     const Self = @This();
 
-    pub fn init(stop_animation: *std.atomic.Value(bool), status: *std.atomic.Value(i32)) Self {
-        return Self{ .stop_animation = stop_animation, .status = status, .status_buffer = undefined };
+    pub fn init(stop_animation: *std.atomic.Value(bool), status: *std.atomic.Value(i32), io: std.Io) Self {
+        return Self{ .stop_animation = stop_animation, .status = status, .status_buffer = undefined, .io = io };
     }
 
     pub const Status = enum(i32) { loading = 0, success = 1, failed = 2 };
@@ -49,11 +50,11 @@ pub const Animation = struct {
 
         switch (self.status.load(.seq_cst)) {
             @intFromEnum(Status.success) => {
-                printColored(.green, "\r{s} {s}\n", .{ success_icon, self.status_buffer });
+                printColored(self.io, .green, "\r{s} {s}\n", .{ success_icon, self.status_buffer });
                 return;
             },
             @intFromEnum(Status.failed) => {
-                printColored(.green, "\r{s} {s}\n", .{ error_icon, self.status_buffer });
+                printColored(self.io, .green, "\r{s} {s}\n", .{ error_icon, self.status_buffer });
                 return;
             },
             else => unreachable,

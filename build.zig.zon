@@ -1,13 +1,13 @@
 .{
     .name = .ziglet,
 
-    .version = "0.9.0",
+    .version = "0.10.0",
 
     .description = "A concise and powerful CLI builder for Zig.",
 
     .fingerprint = 0x27874d01f2b14f8a,
 
-    .minimum_zig_version = "0.15.1",
+    .minimum_zig_version = "0.16.0",
 
     .paths = .{
         "build.zig",

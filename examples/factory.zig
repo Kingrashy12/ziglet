@@ -3,16 +3,12 @@ const ziglet = @import("ziglet");
 const CommandContext = ziglet.BuilderTypes.CommandContext;
 const CLIBuilder = ziglet.CLIBuilder;
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
-    defer _ = gpa.deinit();
+pub fn main(init: std.process.Init) !void {
+    const arena = init.arena;
+    const allocator = init.gpa;
+    const args = try init.minimal.args.toSlice(arena.allocator());
 
-    const allocator = gpa.allocator();
-
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
-
-    var cli = CLIBuilder.init(allocator, "my-cli", "0.1.0", "Factory builder example");
+    var cli = CLIBuilder.init(allocator, init, "my-cli", "0.1.0", "Factory builder example");
     defer cli.deinit();
 
     cli.setGlobalOptions();

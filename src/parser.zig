@@ -8,13 +8,15 @@ const terminal = @import("root.zig").utils.terminal;
 
 allocator: Allocator,
 optionCache: std.StringHashMap(CLIOption),
+io: std.Io,
 
 const Self = @This();
 
-pub fn init(allocator: Allocator) Self {
+pub fn init(allocator: Allocator, io: std.Io) Self {
     return Self{
         .allocator = allocator,
         .optionCache = std.StringHashMap(CLIOption).init(allocator),
+        .io = io,
     };
 }
 
@@ -31,7 +33,7 @@ fn isAlias(token: []const u8) bool {
 }
 
 /// Caller should free returned memory from `command`,`options`,`args`
-pub fn parse(self: *Self, argv: [][:0]u8, options: []const CLIOption) !ParsedArgs {
+pub fn parse(self: *Self, argv: []const [:0]const u8, options: []const CLIOption) !ParsedArgs {
     var parsed = ParsedArgs{
         .command = &.{},
         .options = std.StringHashMap(types.Value).init(self.allocator),
@@ -120,10 +122,10 @@ pub fn parse(self: *Self, argv: [][:0]u8, options: []const CLIOption) !ParsedArg
         } else {
             // This is either a command or an argument
             if (parsed.command.len == 0 and parsed.args.len == 0) {
-                try commands.append(self.allocator, token);
+                try commands.append(self.allocator, @constCast(token));
                 parsed.command = try commands.toOwnedSlice(self.allocator);
             } else {
-                try args.append(self.allocator, token);
+                try args.append(self.allocator, @constCast(token));
             }
             i += 1;
         }
@@ -143,7 +145,7 @@ fn parseNumber(slice: []const u8) types.Value {
     return types.Value{ .number = value };
 }
 
-fn parseOption(token: []const u8, tokens: [][:0]u8, index: usize) !struct { name: []const u8, value: types.Value } {
+fn parseOption(token: []const u8, tokens: []const [:0]const u8, index: usize) !struct { name: []const u8, value: types.Value } {
     if (isOption(token)) {
         const name = tokens[index];
         var value: types.Value = .{ .bool = true };
@@ -184,12 +186,12 @@ fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Va
                 } else if (std.mem.eql(u8, string_value, "false")) {
                     return types.Value{ .bool = false };
                 } else {
-                    terminal.printColored(&.{.red}, "Option '{s}' expects bool but got '{s}' which can not be converted to boolean.\n", .{ option.name, @tagName(value) });
+                    terminal.printColored(self.io, &.{.red}, "Option '{s}' expects bool but got '{s}' which can not be converted to boolean.\n", .{ option.name, @tagName(value) });
                     std.debug.print("\nOption '{s}' expects bool but got: {s}.\n", .{ option.name, @tagName(value) });
                     std.process.exit(1);
                 }
             } else if (value != .bool) {
-                terminal.printColored(&.{.red}, "Option '{s}' expects bool but got: {s}.\n", .{ option.name, @tagName(value) });
+                terminal.printColored(self.io, &.{.red}, "Option '{s}' expects bool but got: {s}.\n", .{ option.name, @tagName(value) });
                 std.debug.print("\nOption '{s}' expects bool but got: {s}.\n", .{ option.name, @tagName(value) });
                 std.process.exit(1);
             }
@@ -198,13 +200,13 @@ fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Va
         },
         .number => {
             if (value == .bool) {
-                terminal.printColored(&.{.red}, "Option '{s}' expects number but got: {s}.\n", .{ option.name, @tagName(value) });
+                terminal.printColored(self.io, &.{.red}, "Option '{s}' expects number but got: {s}.\n", .{ option.name, @tagName(value) });
                 std.process.exit(1);
             } else {
                 const res = parseNumber(value.string);
 
                 if (res != .number) {
-                    terminal.printColored(&.{.red}, "Option '{s}' expects number but got: {s}.\n", .{ option.name, @tagName(value) });
+                    terminal.printColored(self.io, &.{.red}, "Option '{s}' expects number but got: {s}.\n", .{ option.name, @tagName(value) });
                     std.process.exit(1);
                 }
 
@@ -215,15 +217,15 @@ fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Va
             const res = parseNumber(value.string);
 
             if (res != .string) {
-                terminal.printColored(&.{.red}, "Option '{s}' expects string but got: {s}.\n", .{ option.name, @tagName(res) });
+                terminal.printColored(self.io, &.{.red}, "Option '{s}' expects string but got: {s}.\n", .{ option.name, @tagName(res) });
                 std.process.exit(1);
             }
 
             if (option.choices != null and option.choices.?.len >= 1) {
                 var choices_array: std.ArrayList([]const u8) = .empty;
                 for (option.choices.?, 0..) |choice, i| {
-                    choices_array.append(allocator, choice) catch terminal.printColored(&.{.red}, "Out of memory.", .{});
-                    if (option.choices.?.len > 1 and i < option.choices.?.len - 1) choices_array.append(allocator, ", ") catch terminal.printColored(&.{.red}, "Out of memory.", .{});
+                    choices_array.append(allocator, choice) catch terminal.printColored(self.io, &.{.red}, "Out of memory.", .{});
+                    if (option.choices.?.len > 1 and i < option.choices.?.len - 1) choices_array.append(allocator, ", ") catch terminal.printColored(self.io, &.{.red}, "Out of memory.", .{});
                 }
 
                 const choices = choices_array.toOwnedSlice(allocator) catch unreachable;
@@ -242,12 +244,12 @@ fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Va
                 }
 
                 if (found == false) {
-                    terminal.printColored(&.{.red}, "Option '{s}' must be one of: [", .{option.name});
+                    terminal.printColored(self.io, &.{.red}, "Option '{s}' must be one of: [", .{option.name});
 
                     for (choices) |choice| {
-                        terminal.printColored(&.{.red}, "{s}", .{choice});
+                        terminal.printColored(self.io, &.{.red}, "{s}", .{choice});
                     }
-                    terminal.printColored(&.{.red}, "]\n", .{});
+                    terminal.printColored(self.io, &.{.red}, "]\n", .{});
                     std.process.exit(1);
                 }
             }
@@ -263,7 +265,7 @@ fn parseOptionValue(self: *Self, value: types.Value, option: CLIOption) types.Va
 //     for (args) |arg| {
 //         if (argIndex >= parsed.args.length) {
 //             if (arg.required) {
-//                 terminal.printColored(&.{.red}, "Missing required argument: {s}\n", .{arg.name});
+//                 terminal.printColored(self.io,&.{.red}, "Missing required argument: {s}\n", .{arg.name});
 //                 std.process.exit(1);
 //             }
 //             break;
@@ -291,7 +293,7 @@ pub fn validateOptions(self: *Self, parsed: ParsedArgs, options: []CLIOption) !P
 
     if (missing_options.items.len > 0) {
         const alias = if (missing_options.items[0].alias) |a| a else "";
-        terminal.printColored(&.{.red}, "Missing required option: --{s} (-{s})\n", .{ missing_options.items[0].name, alias });
+        terminal.printColored(self.io, &.{.red}, "Missing required option: --{s} (-{s})\n", .{ missing_options.items[0].name, alias });
         return error.MissingRequiredOption;
     }
 
