@@ -30,10 +30,10 @@ pub fn print(io: std.Io, comptime fmt: []const u8, args: anytype) void {
 pub fn printColored(io: std.Io, styles: []const Color.Style, comptime fmt: []const u8, args: anytype) void {
     const allocator = std.heap.page_allocator;
 
-    const text = try std.fmt.allocPrint(allocator, fmt, args);
+    const text = std.fmt.allocPrint(allocator, fmt, args) catch return;
     defer allocator.free(text);
 
-    var r = Color.colored(allocator, text, styles) catch unreachable;
+    var r = Color.colored(allocator, text, styles) catch return;
     defer r.instance.deinit();
 
     print(io, "{s}", .{r.result});
@@ -194,7 +194,7 @@ pub fn stripAnsi(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
         if (input[i] == 0x1b and i + 1 < input.len and input[i + 1] == '[') {
             i += 2;
             while (i < input.len and input[i] != 'm') i += 1;
-            i += 1;
+            if (i < input.len) i += 1; // Only increment if we found 'm'
         } else {
             try out.append(allocator, input[i]);
             i += 1;
