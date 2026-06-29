@@ -2,7 +2,7 @@ const terminal = @import("utils/terminal.zig");
 const Value = @import("types.zig").Value;
 const std = @import("std");
 
-pub fn takeBool(value: Value) bool {
+pub fn takeBool(value: Value) !bool {
     if (value == .bool) {
         return value.bool;
     } else if (value == .string) {
@@ -13,29 +13,25 @@ pub fn takeBool(value: Value) bool {
         } else if (std.mem.eql(u8, string_value, "false")) {
             return false;
         } else {
-            terminal.printColored(&.{.red}, "value is not a boolean.", .{});
-            std.process.exit(1);
+            return error.ValueNotBool;
         }
     } else {
-        terminal.printColored(&.{.red}, "value is not a boolean.", .{});
-        std.process.exit(1);
+        return error.ValueNotBool;
     }
 }
 
-pub fn takeString(value: Value) []const u8 {
+pub fn takeString(value: Value) ![]const u8 {
     if (value == .string) {
         return value.string;
     } else {
-        terminal.printColored(&.{.red}, "value is not a string.", .{});
-        std.process.exit(1);
+        return error.ValueNotString;
     }
 }
 
-pub fn takeNumber(value: Value) []const u8 {
+pub fn takeNumber(value: Value) ![]const u8 {
     if (value == .number) {
         return value.number;
     } else {
-        terminal.printColored(&.{.red}, "value is not a number.", .{});
-        std.process.exit(1);
+        return error.ValueNotNumber;
     }
 }

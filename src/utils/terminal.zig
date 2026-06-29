@@ -79,12 +79,12 @@ pub fn setWinConsole() void {
 ///
 /// Returns the input as a slice of constant bytes, or an error if reading fails.
 /// Caller owns the returned memory
-pub fn readInput(allocator: std.mem.Allocator, prompt: ?[]const u8) ![]const u8 {
+pub fn readInput(allocator: std.mem.Allocator, io: std.Io, prompt: ?[]const u8) ![]const u8 {
     if (prompt) |p| {
         std.debug.print("{s}", .{p});
     }
 
-    const slice = try readLine(allocator, 100, false);
+    const slice = try readLine(allocator, io, 100, false);
     defer allocator.free(slice);
 
     return allocator.dupe(u8, std.mem.trim(u8, slice, "\n\r"));
@@ -95,12 +95,12 @@ pub fn readInput(allocator: std.mem.Allocator, prompt: ?[]const u8) ![]const u8 
 /// - `prompt`: An optional prompt message to display before reading input.
 ///
 /// Returns the input as an unsigned 8-bit integer (`u8`)
-pub fn readInputNum(allocator: Allocator, prompt: ?[]const u8) !u8 {
+pub fn readInputNum(allocator: Allocator, io: std.Io, prompt: ?[]const u8) !u8 {
     if (prompt) |p| {
         std.debug.print("{s}", .{p});
     }
 
-    const slice = try readLine(allocator, 10, false);
+    const slice = try readLine(allocator, io, 10, false);
     defer allocator.free(slice);
 
     return try std.fmt.parseInt(u8, slice, 10);
@@ -113,7 +113,7 @@ pub fn readInputNum(allocator: Allocator, prompt: ?[]const u8) !u8 {
 ///
 /// Returns the index of the selected option on success.
 /// Returns an error if the selection process fails.
-pub fn select(allocator: Allocator, options: []const []const u8, message: []const u8) !usize {
+pub fn select(allocator: Allocator, io: std.Io, options: []const []const u8, message: []const u8) !usize {
     std.debug.print("{s}\n", .{message});
 
     for (options, 0..) |option, i| {
@@ -123,7 +123,7 @@ pub fn select(allocator: Allocator, options: []const []const u8, message: []cons
     while (true) {
         std.debug.print("> ", .{});
 
-        const slice = try readLine(allocator, 10, false);
+        const slice = try readLine(allocator, io, 10, false);
         defer allocator.free(slice);
 
         const index = std.fmt.parseInt(usize, slice, 10) catch {
@@ -142,10 +142,10 @@ pub fn select(allocator: Allocator, options: []const []const u8, message: []cons
 /// Prompts the user with the given `message` and waits for a confirmation input.
 /// Returns `true` if the user confirms, `false` otherwise.
 /// May return an error if input/output operations fail.
-pub fn confirm(allocator: Allocator, message: []const u8) !bool {
+pub fn confirm(allocator: Allocator, io: std.Io, message: []const u8) !bool {
     std.debug.print("{s} (y/n): ", .{message});
 
-    const slice = try readLine(allocator, 10, true);
+    const slice = try readLine(allocator, io, 10, true);
     defer allocator.free(slice);
 
     if (std.mem.eql(u8, slice, "y")) {
@@ -154,7 +154,7 @@ pub fn confirm(allocator: Allocator, message: []const u8) !bool {
         return false;
     } else {
         std.debug.print("Invalid input. Please enter y or n.\n", .{});
-        return try confirm(allocator, message);
+        return try confirm(allocator, io, message);
     }
 }
 
@@ -164,9 +164,9 @@ pub fn confirm(allocator: Allocator, message: []const u8) !bool {
 /// - `max_size`: The maximum size of input to read.
 ///
 /// Caller owns the returned memory
-pub fn readLine(allocator: std.mem.Allocator, comptime max_size: usize, to_lower: bool) ![]const u8 {
+pub fn readLine(allocator: std.mem.Allocator, io: std.Io, comptime max_size: usize, to_lower: bool) ![]const u8 {
     var stdin_buffer: [max_size]u8 = undefined;
-    var stdin_reader = std.Io.File.stdin().reader(&stdin_buffer);
+    var stdin_reader = std.Io.File.stdin().reader(io, &stdin_buffer);
     const stdin = &stdin_reader.interface;
 
     const line = try stdin.takeDelimiterExclusive('\n');
